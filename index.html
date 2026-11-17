@@ -85,7 +85,8 @@ h2.sec{margin-bottom:6px;height:18px}
 .badge-ns{font-size:12px;font-weight:600;background:#F3F4F6;color:#6B7280;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle;cursor:help}
 .main{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;flex:1 1 0;min-height:0;grid-template-rows:minmax(0,1fr)}
 .main .card{display:flex;flex-direction:column;min-height:0;overflow:hidden}
-#cr-tot{flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;border-top:1px solid #E5E7EB;padding-top:6px;margin-top:4px;font-size:13px}
+/* versione 8, 17/11 sera: due colonne, il saldo non e' piu' nella riga sotto */
+#cr-tot{flex:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:center;border-top:1px solid #E5E7EB;padding-top:6px;margin-top:4px;font-size:13px}
 #cr-tot div{min-width:0}
 #cr-tot b{font-size:15px;font-weight:700}
 #cr-tot .c{text-align:center}#cr-tot .d{text-align:right}
@@ -293,7 +294,8 @@ function controlliHtml() {
 function disegnaIntestazione() {
   var m = D.meta;
   $('#nome-azienda').textContent = m.nomeAzienda || 'Azienda di software in abbonamento';
-  $('#nota-demo').textContent = 'Dati inventati a scopo dimostrativo';
+  // versione 8, 17/11 sera: importi in euro scritto in alto
+  $('#nota-demo').textContent = 'Dati inventati a scopo dimostrativo · importi in euro';
   var ag = m.aggiornatoIl || '';
   $('#agg-testo').textContent = 'Dati fino al ' + dataIt(m.datiFinoAl);
   var pe = $('#pill-esito'), bn = $('#banner-esito');
@@ -619,8 +621,8 @@ function disegnaSankey() {
   out += '<rect x="' + xc + '" y="' + cTop + '" width="' + NW + '" height="' + cH + '" rx="2" fill="#CBD5E1"/>' +
     '<text x="' + (xc + NW / 2) + '" y="' + (cTop - 24) + '" text-anchor="middle" font-size="12" font-weight="600" fill="' + (TE - TU < -0.5 ? '#DC2626' : TE - TU > 0.5 ? '#16A34A' : '#6B7280') + '">Saldo del periodo ' + num(TE - TU) + '</text>';
   box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cash river: entrate a sinistra, uscite a destra">' + out + dots + txt + '</svg>';
-  var saldo = TE - TU;
-  $('#cr-tot').innerHTML = '<div>Totale entrate<br><b>' + num(TE) + '</b></div><div class="c">Saldo del periodo<br><b class="' + (saldo < -0.5 ? 'down' : saldo > 0.5 ? 'up' : 'flat') + '">' + num(saldo) + '</b></div><div class="d">Totale uscite<br><b>' + num(TU) + '</b></div>';
+  // versione 8, 17/11 sera: tolto il saldo dalla riga sotto
+  $('#cr-tot').innerHTML = '<div>Totale entrate<br><b>' + num(TE) + '</b></div><div class="d">Totale uscite<br><b>' + num(TU) + '</b></div>';
   $('#cr-sub').textContent = 'entrate a sinistra, uscite a destra, in euro · ' + (en.dallaRiserva > 0 ? 'la cassa scende di ' + num(en.dallaRiserva) : 'la cassa sale di ' + num(us.allaRiserva)) + ' nel periodo';
 }
 RENDER.push(disegnaSankey);
