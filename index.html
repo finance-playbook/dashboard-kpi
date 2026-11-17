@@ -114,6 +114,16 @@ section{margin-top:0}
 #grafcassa{flex:1 1 0;min-height:200px;margin-top:10px;display:flex;flex-direction:column;overflow:hidden}
 #gc{flex:1 1 0;min-height:0;position:relative;margin-top:4px}
 #gc svg{position:absolute;left:0;top:0;font-family:inherit}
+/* versione 7, 17/11: grafici mese per mese in Abbonamenti, Acquisizione e Conto economico */
+.card.graf{margin-top:10px}
+.gduo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:22px}
+@media (max-width:1100px){.gduo{grid-template-columns:minmax(0,1fr)}}
+.gbox{height:240px;position:relative;margin-top:4px}
+.gbox svg{position:absolute;left:0;top:0;font-family:inherit}
+.gbox rect.hit:hover{fill-opacity:.05}
+.leg{font-weight:400;color:#6B7280;white-space:nowrap}
+.leg i{display:inline-block;width:18px;height:0;border-top:2px solid #2563EB;vertical-align:middle;margin:0 5px 0 10px}
+.leg i.lb{border-top:2px dashed #94A3B8}
 /* linguetta Tolleranze */
 .tol-note{font-size:13px;line-height:1.45;color:#374151;margin:0 0 8px}
 .tol-bar{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
@@ -178,14 +188,17 @@ table.t tr:last-child td{border-bottom:0}
   <div class="pane" id="p-abbonamenti" data-scheda="abbonamenti">
   <section id="s04"><h2 class="sec"><span class="num">04</span>Abbonamenti e clienti <small id="t04"></small></h2>
     <div class="kgrid" id="k04"></div>
-    <div class="duo"><div class="card" id="ponte"></div><div class="card" id="piani"></div></div></section>
+    <div class="duo"><div class="card" id="ponte"></div><div class="card" id="piani"></div></div>
+    <div class="card graf"><h3>MRR mese per mese <span class="leg"><i></i>reale<i class="lb"></i>budget</span> <span class="muted" style="font-weight:400">· fascia azzurra = periodo scelto, pallino blu = fine periodo</span></h3><div class="gbox" id="g04"></div></div></section>
   </div>
   <div class="pane" id="p-acquisizione" data-scheda="acquisizione">
   <section id="s05"><h2 class="sec"><span class="num">05</span>Acquisizione <small>quanto costa portare un cliente e quanto rende</small></h2>
-    <div class="kgrid c4" id="k05"></div><div class="card" id="canali" style="margin-top:10px"></div></section>
+    <div class="kgrid c4" id="k05"></div><div class="card" id="canali" style="margin-top:10px"></div>
+    <div class="card graf"><div class="gduo"><div><h3>Spesa in pubblicità mese per mese, in euro</h3><div class="gbox" id="g05a"></div></div><div><h3>Clienti nuovi mese per mese</h3><div class="gbox" id="g05b"></div></div></div><p class="muted" style="font-size:12px;margin-top:4px">Fascia azzurra = periodo scelto, pallino blu = fine periodo</p></div></section>
   </div>
   <div class="pane" id="p-conto-economico" data-scheda="conto-economico">
-  <section id="s06"><h2 class="sec"><span class="num">06</span>Conto economico <small>ricavi di competenza e margini</small></h2><div class="kgrid" id="k06"></div></section>
+  <section id="s06"><h2 class="sec"><span class="num">06</span>Conto economico <small>ricavi di competenza e margini</small></h2><div class="kgrid" id="k06"></div>
+    <div class="card graf"><div class="gduo"><div><h3>Ricavi di competenza mese per mese <span class="leg"><i></i>reali<i class="lb"></i>budget</span></h3><div class="gbox" id="g06a"></div></div><div><h3>EBITDA mese per mese <span class="leg"><i></i>reale<i class="lb"></i>budget</span></h3><div class="gbox" id="g06b"></div></div></div><p class="muted" style="font-size:12px;margin-top:4px">In euro · fascia azzurra = periodo scelto, pallino blu = fine periodo</p></div></section>
   </div>
   <div class="pane" id="p-cassa" data-scheda="cassa">
   <section id="s07"><h2 class="sec"><span class="num">07</span>Cassa e debiti <small>la cassa mese per mese e i numeri per capire quanto dura</small></h2>
@@ -460,9 +473,10 @@ var SEI = [
   { k: 'clientiAttivi', lab: 'Clienti attivi', t: 'int', serie: 'clientiAttivi', sub: function (p) { return num(p.kpi.clientiNuovi.valore) + ' nuovi e ' + num(p.kpi.clientiPersi.valore) + ' persi nel periodo'; } },
   { k: 'churn', lab: 'Churn', t: 'pct', inv: true, serie: 'churn', sub: function (p) { return (p.tipo === 'mese' ? 'clienti persi nel mese' : 'media mensile') + ' · ' + num(p.kpi.clientiPersi.valore) + ' persi'; } },
   { k: 'rientroCac12m', lab: 'Rientro del CAC (12 mesi)', t: 'mesi', inv: true, serie: 'rientroCac12m', sub: function (p) { return 'mesi per rientrare della spesa di acquisizione clienti (CAC)'; } },
-  { k: 'margineEbitda', lab: 'Margine EBITDA', t: 'pct', serie: 'margineEbitda', sub: function (p) { return 'EBITDA (margine prima di interessi, imposte e ammortamenti): ' + num(p.kpi.ebitda.valore) + ' euro'; } },
   { k: 'runwayEbitda', lab: 'Runway (mesi di cassa)', t: 'mesi', serie: 'runwayEbitda', sub: function (p) { var r = p.kpi.runwayCassa, c = p.kpi.cassaFine; return 'al ritmo reale della cassa: ' + (r.valore == null ? 'n.d.' : num(r.valore, 1) + ' mesi') + ' · cassa ' + num(c.valore); },
-    tip: function (p, kp) { return kp.valore == null ? '' : 'La cassa scende più piano della perdita perché i clienti annuali pagano in anticipo: sono soldi da \'restituire\' in servizio, per questo il numero prudente è ' + num(kp.valore, 1) + '.'; } }
+    tip: function (p, kp) { return kp.valore == null ? '' : 'La cassa scende più piano della perdita perché i clienti annuali pagano in anticipo: sono soldi da \'restituire\' in servizio, per questo il numero prudente è ' + num(kp.valore, 1) + '.'; } },
+  // versione 7, 17/11: il margine EBITDA va all'estrema destra, sopra "Dal budget all'EBITDA"
+  { k: 'margineEbitda', lab: 'Margine EBITDA', t: 'pct', serie: 'margineEbitda', sub: function (p) { return 'EBITDA (margine prima di interessi, imposte e ammortamenti): ' + num(p.kpi.ebitda.valore) + ' euro'; } }
 ];
 /* riga di sintesi sopra i sei numeri: costruita dal codice per ogni periodo, sempre contro il budget; senza budget (MRR o EBITDA) non compare */
 function sintesiPeriodo() {
@@ -785,10 +799,62 @@ function disegnaGraficoCassa() {
   out += '<circle cx="' + xs(ib) + '" cy="' + ys(vals[ib]) + '" r="4.5" fill="#2563EB" stroke="#fff" stroke-width="2"/>';
   box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cassa mese per mese">' + out + '</svg>';
 }
+/* versione 7, 17/11: grafici mese per mese con la grafica di "Cassa a fine mese".
+   Reale e budget vengono dai periodi mensili del programma (kpi.valore e kpi.budget), nessun numero scritto a mano.
+   Una sola scala per grafico: euro e numero di clienti stanno in due grafici affiancati. */
+function valoriMese(k, campo) {
+  return D.meta.mesi.map(function (m) { var q = D.periodi['mese-' + m], x = q && q.kpi[k]; return x && x[campo] != null ? x[campo] : null; });
+}
+function passoTondo(r) {
+  var e = Math.pow(10, Math.floor(Math.log(r / 4) / Math.LN10)), m = r / 4 / e;
+  return (m <= 1 ? 1 : m <= 2 ? 2 : m <= 2.5 ? 2.5 : m <= 5 ? 5 : 10) * e;
+}
+function graficoMesi(sel, k, nome, conBudget) {
+  var box = $(sel); if (!box || !box.offsetWidth) return;
+  var mesi = D.meta.mesi, p = per(), re = valoriMese(k, 'valore'), bu = conBudget ? valoriMese(k, 'budget') : [];
+  var W = box.clientWidth, H = Math.max(box.clientHeight, 140), L = 72, R = 30, T = 14, B = 28;
+  var tutti = re.concat(bu).filter(function (v) { return v != null; }).concat([0]);
+  var mn = Math.min.apply(null, tutti), mx = Math.max.apply(null, tutti), st = passoTondo(mx - mn || 1);
+  var lo = Math.floor(mn / st) * st, hi = Math.ceil(mx / st) * st;
+  var xs = function (i) { return L + i * (W - L - R) / (mesi.length - 1); }, ys = function (v) { return T + (hi - v) * (H - T - B) / (hi - lo); };
+  var out = '';
+  for (var g = lo; g <= hi + st / 2; g += st) out += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + ys(g) + '" y2="' + ys(g) + '" stroke="' + (Math.abs(g) < st / 2 && lo < 0 ? '#D1D5DB' : '#F3F4F6') + '"/><text x="' + (L - 8) + '" y="' + (ys(g) + 4) + '" text-anchor="end" font-size="12" fill="#6B7280">' + num(g) + '</text>';
+  var ia = mesi.indexOf(p.mesi[0]), ib = mesi.indexOf(p.mesi[p.mesi.length - 1]);
+  out += '<rect x="' + (xs(ia) - 6) + '" y="' + T + '" width="' + (xs(ib) - xs(ia) + 12) + '" height="' + (H - T - B) + '" fill="#2563EB" opacity=".07" rx="4"/>';
+  function linea(v, attr) {
+    var d = '', pen = false;
+    v.forEach(function (y, i) { if (y == null) { pen = false; return; } d += (pen ? 'L' : 'M') + xs(i).toFixed(1) + ' ' + ys(y).toFixed(1); pen = true; });
+    return d ? '<path d="' + d + '" fill="none" stroke-linejoin="round" ' + attr + '/>' : '';
+  }
+  if (conBudget) out += linea(bu, 'stroke="#94A3B8" stroke-width="2" stroke-dasharray="5 4"');
+  out += linea(re, 'stroke="#2563EB" stroke-width="2"');
+  mesi.forEach(function (m, i) {
+    var a = m.split('-');
+    if (i % 2 === 0 || i === mesi.length - 1) out += '<text x="' + xs(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="#6B7280">' + NOMI_MESI[+a[1] - 1] + ' ' + a[0].slice(2) + '</text>';
+  });
+  if (ib >= 0 && re[ib] != null) out += '<circle cx="' + xs(ib) + '" cy="' + ys(re[ib]) + '" r="4.5" fill="#2563EB" stroke="#fff" stroke-width="2"/>';
+  // una fascia invisibile per mese: al passaggio del mouse dice valore, budget e differenza
+  var passo = (W - L - R) / (mesi.length - 1);
+  mesi.forEach(function (m, i) {
+    if (re[i] == null) return;
+    var a = m.split('-'), t = maiusc(NOMI_MESI[+a[1] - 1]) + ' ' + a[0] + ' · ' + nome + ' ' + num(re[i]);
+    if (conBudget && bu[i] != null) t += ' · budget ' + num(bu[i]) + ' · differenza ' + snum(re[i] - bu[i]);
+    out += '<rect class="hit" x="' + (xs(i) - passo / 2).toFixed(1) + '" y="' + T + '" width="' + passo.toFixed(1) + '" height="' + (H - T - B) + '" fill="#2563EB" fill-opacity="0" data-tip="' + esc(t) + '"/>';
+  });
+  box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc(nome) + ' mese per mese">' + out + '</svg>';
+}
+function disegnaGraficiMesi() {
+  graficoMesi('#g04', 'mrr', 'MRR', true);
+  graficoMesi('#g05a', 'pubblicita', 'spesa in pubblicità', false);
+  graficoMesi('#g05b', 'clientiNuovi', 'clienti nuovi', false);
+  graficoMesi('#g06a', 'ricavi', 'ricavi', true);
+  graficoMesi('#g06b', 'ebitda', 'EBITDA', true);
+}
 function disegnaS06S07S08() {
   riempiSchede('#k06', '06', K06);
   riempiSchede('#k07', '07', K07);
   disegnaGraficoCassa();
+  disegnaGraficiMesi();
   $('#k08').innerHTML = controlliHtml();
 }
 RENDER.push(disegnaS06S07S08);
@@ -883,7 +949,7 @@ function misuraBarra() {
 function ridisegnaGrafici() {
   misuraBarra();
   if (!D) return;
-  disegnaSankey(); disegnaCascata(); disegnaGraficoCassa();
+  disegnaSankey(); disegnaCascata(); disegnaGraficoCassa(); disegnaGraficiMesi();
 }
 function apriScheda(nome, primo) {
   SCHEDA = nome;
@@ -904,7 +970,7 @@ window.addEventListener('hashchange', function () { if (D) apriScheda(schedaDaHa
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(pianifica);
   if (window.ResizeObserver) {
     var ro = new ResizeObserver(pianifica);
-    ['#sankey', '#cascata', '#gc'].forEach(function (s) { var n = document.querySelector(s); if (n) ro.observe(n); });
+    ['#sankey', '#cascata', '#gc', '#g04', '#g05a', '#g05b', '#g06a', '#g06b'].forEach(function (s) { var n = document.querySelector(s); if (n) ro.observe(n); });
   }
 })();
 </script>
