@@ -617,7 +617,7 @@ function disegnaSankey() {
   });
   // versione 8, 17/11: sopra il nodo centrale il saldo del periodo (entrate meno uscite), non piu' il totale di un lato
   out += '<rect x="' + xc + '" y="' + cTop + '" width="' + NW + '" height="' + cH + '" rx="2" fill="#CBD5E1"/>' +
-    '<text x="' + (xc + NW / 2) + '" y="' + (cTop - 8) + '" text-anchor="middle" font-size="12" font-weight="600" fill="' + (TE - TU < -0.5 ? '#DC2626' : TE - TU > 0.5 ? '#16A34A' : '#6B7280') + '">Saldo del periodo ' + num(TE - TU) + '</text>';
+    '<text x="' + (xc + NW / 2) + '" y="' + (cTop - 24) + '" text-anchor="middle" font-size="12" font-weight="600" fill="' + (TE - TU < -0.5 ? '#DC2626' : TE - TU > 0.5 ? '#16A34A' : '#6B7280') + '">Saldo del periodo ' + num(TE - TU) + '</text>';
   box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cash river: entrate a sinistra, uscite a destra">' + out + dots + txt + '</svg>';
   var saldo = TE - TU;
   $('#cr-tot').innerHTML = '<div>Totale entrate<br><b>' + num(TE) + '</b></div><div class="c">Saldo del periodo<br><b class="' + (saldo < -0.5 ? 'down' : saldo > 0.5 ? 'up' : 'flat') + '">' + num(saldo) + '</b></div><div class="d">Totale uscite<br><b>' + num(TU) + '</b></div>';
