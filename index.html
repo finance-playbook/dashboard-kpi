@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard dei KPI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{background:#F7F8FA}
+body{font-family:'Inter',system-ui,-apple-system,'Segoe UI',Arial,sans-serif;color:#1F2937;font-variant-numeric:tabular-nums;font-size:13px;background:#F7F8FA}
+#app{max-width:2200px;margin:0 auto;display:flex;flex-direction:column}
+.pane{display:none;padding:8px 20px 12px;flex-direction:column;gap:10px}
+.pane.on{display:flex}
+#p-panoramica.on,#p-cassa.on{height:calc(100vh - var(--sopra,130px));min-height:600px}
+.card{background:#FFFFFF;border:1px solid #E5E7EB;border-radius:12px;padding:10px 14px;min-width:0}
+h2{font-size:15px;font-weight:600;display:flex;align-items:baseline;gap:8px}
+h2 .num{color:#2563EB;font-weight:700;font-size:13px}
+h2 small{font-weight:400;color:#6B7280;font-size:12px}
+.muted{color:#6B7280}
+.up{color:#16A34A}.down{color:#DC2626}.flat{color:#6B7280}
+/* messaggio se mancano i dati */
+#avviso-dati{padding:40px;text-align:center;font-size:16px;color:#991B1B;background:#FEF2F2;border:1px solid #FECACA;border-radius:12px;margin:40px 20px}
+/* banner esito rosso */
+#banner-esito{background:#FEF2F2;border:1px solid #FECACA;color:#991B1B;border-radius:12px;padding:10px 16px;font-size:13px;line-height:1.45;margin:8px 20px 0}
+#banner-esito b{font-weight:700}
+/* barra fissa in alto */
+#barra{position:sticky;top:0;z-index:100;background:#fff;border-bottom:1px solid #D1D5DB;padding:6px 20px 0}
+.b-top{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;min-height:32px}
+.brand{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;min-width:0}
+.seg{flex:none}
+.brand h1{font-size:17px;font-weight:700;letter-spacing:-.01em}
+.brand span{color:#6B7280;font-size:12px}
+.agg{display:flex;align-items:center;gap:10px;font-size:12px;color:#4B5563;flex-wrap:wrap;margin-left:auto}
+.b-tabs{display:flex;align-items:flex-end;gap:4px 16px;margin-top:2px;flex-wrap:wrap}
+.tabs{display:flex;align-items:flex-end;gap:4px;flex-wrap:wrap}
+.tabs button{font:inherit;font-size:13px;font-weight:600;color:#6B7280;background:#EEF1F5;border:1px solid #E5E7EB;border-bottom:0;border-radius:8px 8px 0 0;padding:7px 14px;cursor:pointer;margin-bottom:0;border-top:3px solid transparent}
+.tabs button:hover{background:#E5E9F0;color:#1F2937}
+.tabs button.on{background:#F7F8FA;color:#1D4ED8;border-color:#D1D5DB;border-top:3px solid #2563EB;margin-bottom:-1px;padding-bottom:8px;position:relative}
+#rif{flex:1 1 0;min-width:0;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;align-self:center;padding-bottom:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 12px;font-size:12px;font-weight:600;border:1px solid transparent;font-family:inherit;background:none}
+.pill.ok{background:#F0FDF4;color:#15803D;border-color:#BBF7D0}
+.pill.ko{background:#FEF2F2;color:#B91C1C;border-color:#FECACA}
+.pill.warn{background:#FFFBEB;color:#B45309;border-color:#FDE68A}
+.pill.neutro{background:#F3F4F6;color:#4B5563;border-color:#E5E7EB}
+.pill::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor}
+button.pill{cursor:pointer}
+/* selettori */
+.sel{display:flex;align-items:center;gap:8px 10px;padding:4px 0 6px;flex-wrap:wrap}
+.sel .lab{font-size:12px;color:#6B7280;font-weight:500}
+.seg{display:inline-flex;border:1px solid #E5E7EB;border-radius:8px;background:#fff;overflow:hidden}
+.seg button{font:inherit;font-weight:500;color:#6B7280;background:#fff;border:0;border-right:1px solid #E5E7EB;padding:6px 10px;cursor:pointer;white-space:nowrap}
+.seg button:last-child{border-right:0}
+.seg button.on{background:#2563EB;color:#fff}
+select{font:inherit;font-weight:500;color:#1F2937;background:#fff;border:1px solid #E5E7EB;border-radius:8px;padding:6px 10px;width:210px;max-width:100%;flex:none}
+.sep{width:1px;align-self:stretch;background:#E5E7EB;margin:2px 4px}
+#rif{font-size:12px;color:#6B7280}
+#rif b{color:#1F2937;font-weight:600}
+/* tooltip: un solo riquadro mosso da uno script, tenuto dentro la finestra */
+#tip{position:fixed;left:0;top:0;z-index:200;background:#111827;color:#fff;font-size:12px;font-weight:400;line-height:1.4;padding:7px 10px;border-radius:6px;width:max-content;max-width:340px;white-space:normal;text-align:left;pointer-events:none;display:none}
+[data-tip]{cursor:help}
+.info{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;border-radius:50%;border:1px solid #9CA3AF;color:#6B7280;font-size:12px;font-weight:600;font-style:normal;line-height:1;margin-left:6px;vertical-align:middle;flex:none}
+.info:hover,.info:focus{background:#2563EB;border-color:#2563EB;color:#fff;outline:0}
+.ctl{display:grid;grid-template-columns:112px minmax(0,1fr);gap:10px;padding:7px 0;border-top:1px solid #F3F4F6;font-size:12.5px;line-height:1.4}
+.ctl:first-child{border-top:0}
+.ctl .pill{justify-content:center;align-self:start}
+h2.sec{margin-bottom:6px;height:18px}
+.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+.kpi{display:flex;flex-direction:column;padding:9px 12px 9px 18px;position:relative}
+.strip{position:absolute;left:0;top:0;bottom:0;width:14px;border-radius:12px 0 0 12px;background:linear-gradient(90deg,var(--c) 0,var(--c) 6px,transparent 6px)}
+.strip.g{--c:#16A34A}.strip.o{--c:#F59E0B}.strip.r{--c:#DC2626}
+.badge-mon{font-size:12px;font-weight:600;color:#B45309;background:#FFFBEB;border:1px solid #FDE68A;border-radius:4px;padding:0 5px;margin-left:auto}
+.kpi .lab{font-size:12px;color:#6B7280;font-weight:500;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kpi .val{font-size:clamp(22px,1.75vw,30px);font-weight:700;letter-spacing:-.02em;line-height:1.2;margin-top:2px;overflow-wrap:anywhere}
+.kpi .val.ns{color:#9CA3AF}
+.kpi .sub{font-size:12px;color:#6B7280;line-height:1.3;margin-bottom:4px;overflow-wrap:anywhere}
+.kpi .bot{margin-top:auto;display:flex;align-items:flex-end;justify-content:space-between;gap:6px 8px;flex-wrap:wrap}
+.delta{font-size:13px;font-weight:600;min-width:0}
+.delta small{display:block;color:#6B7280;font-weight:400;font-size:12px;line-height:1.3;overflow-wrap:anywhere}
+.spark{flex:none}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none;cursor:help}
+.dot.g{background:#16A34A}.dot.r{background:#DC2626}.dot.o{background:#F59E0B}
+.badge-ns{font-size:12px;font-weight:600;background:#F3F4F6;color:#6B7280;border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle;cursor:help}
+.main{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:14px;flex:1 1 0;min-height:0;grid-template-rows:minmax(0,1fr)}
+.main .card{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+#cr-tot{flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:8px;align-items:center;border-top:1px solid #E5E7EB;padding-top:6px;margin-top:4px;font-size:13px}
+#cr-tot div{min-width:0}
+#cr-tot b{font-size:15px;font-weight:700}
+#cr-tot .c{text-align:center}#cr-tot .d{text-align:right}
+#cr-tot small{display:block;color:#6B7280;font-size:12px;line-height:1.3}
+#sankey{flex:1 1 0;min-height:0;margin-top:4px;position:relative}
+#sankey svg{position:absolute;left:0;top:0}
+#sankey svg text{font-family:inherit}
+#cascata{margin-top:6px;flex:1 1 0;min-height:0;position:relative;overflow:hidden}
+#cascata svg{position:absolute;left:0;top:0;display:block}
+#tre-voci{margin-top:6px;border-top:1px solid #E5E7EB;padding-top:6px;flex:none}
+#tre-voci h3{font-size:12.5px;font-weight:600;margin-bottom:2px}
+.voce{display:grid;grid-template-columns:minmax(0,11em) minmax(0,1fr);gap:8px;padding:3px 0;font-size:13px;border-top:1px solid #F3F4F6;align-items:baseline}
+.voce:first-of-type{border-top:0}
+.voce b{font-weight:600}
+.voce small{color:#6B7280;font-size:12px;margin-left:6px}
+.nd-box{padding:24px 8px;color:#6B7280;line-height:1.5;font-size:13px}
+.nd-box b{color:#1F2937}
+@keyframes sale{from{opacity:0;transform:scaleY(.1)}to{opacity:1;transform:scaleY(1)}}
+.bar{transform-box:fill-box;transform-origin:center;animation:sale .45s ease-out both}
+section{margin-top:0}
+.kgrid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px}
+.kgrid.c4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:10px;margin-top:10px}
+@media (max-width:1500px){.duo{grid-template-columns:minmax(0,1fr)}}
+#s07{display:flex;flex-direction:column;flex:1 1 0;min-height:0}
+#grafcassa{flex:1 1 0;min-height:200px;margin-top:10px;display:flex;flex-direction:column;overflow:hidden}
+#gc{flex:1 1 0;min-height:0;position:relative;margin-top:4px}
+#gc svg{position:absolute;left:0;top:0;font-family:inherit}
+/* linguetta Tolleranze */
+.tol-note{font-size:13px;line-height:1.45;color:#374151;margin:0 0 8px}
+.tol-bar{display:flex;align-items:center;gap:12px;margin-bottom:8px;flex-wrap:wrap}
+.tol-bar button{font:inherit;font-size:13px;font-weight:600;color:#1D4ED8;background:#fff;border:1px solid #BFDBFE;border-radius:8px;padding:5px 12px;cursor:pointer}
+.tol-bar button:hover{background:#EFF6FF}
+.tol2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:start}
+.tol2>div{border:1px solid #D1D5DB;border-radius:10px;padding:8px 10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+@media (max-width:1400px){.tol2{grid-template-columns:minmax(0,1fr)}}
+table.tt{width:100%;border-collapse:collapse;font-size:12px}
+table.tt th{text-align:left;font-weight:500;color:#6B7280;padding:3px 6px;border-bottom:1px solid #E5E7EB}
+table.tt td{padding:3px 6px;border-bottom:1px solid #F3F4F6;vertical-align:middle;line-height:1.25}
+table.tt td.n{font-weight:600;font-size:13px}
+table.tt td.nw{white-space:nowrap}
+table.tt input{font:inherit;font-size:13px;width:66px;padding:3px 6px;border:1px solid #D1D5DB;border-radius:6px;text-align:right}
+table.tt input.bad{border-color:#DC2626;background:#FEF2F2}
+table.tt .msg{display:block;color:#B91C1C;font-size:12px}
+.sw{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.pane h2.sec{margin-top:0}
+table.t{width:100%;border-collapse:collapse;font-size:13px}
+table.t th{text-align:right;font-weight:500;color:#6B7280;font-size:12px;padding:6px 8px;border-bottom:1px solid #E5E7EB}
+table.t td{text-align:right;padding:7px 8px;border-bottom:1px solid #F3F4F6}
+table.t th:first-child,table.t td:first-child{text-align:left;font-weight:600}
+table.t tr:last-child td{border-bottom:0}
+.ponte{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-top:10px}
+.ponte div{background:#F7F8FA;border-radius:8px;padding:8px 10px;font-size:12px;color:#6B7280}
+.ponte b{display:block;font-size:17px;color:#1F2937;font-weight:700}
+.card h3{font-size:13px;font-weight:600}
+#sintesi{font-size:13px;font-weight:600;color:#1F2937;line-height:1.35;margin:0 0 6px}
+#cr-inc{flex:none;font-size:12px;color:#6B7280;line-height:1.3;margin-top:4px}
+#leg-colore{margin-left:4px}
+<!--@@CSS-->
+</style>
+</head>
+<body>
+<div id="tip" role="tooltip"></div>
+<div id="avviso-dati" hidden></div>
+<div id="app" hidden>
+  <div id="barra">
+    <div class="b-top">
+      <div class="brand"><h1 id="nome-azienda"></h1><span id="nota-demo"></span></div>
+      <div class="agg"><span id="agg-testo"></span><span id="pill-esito" class="pill neutro"></span><button id="pill-controlli" class="pill ok" type="button">Controlli</button></div>
+    </div>
+    <div class="sel">
+      <span class="lab">Periodo</span>
+      <div class="seg" id="seg-tipo"></div>
+      <select id="sel-quale" aria-label="Quale periodo"></select>
+      <div class="sep"></div>
+      <span class="lab">Confronto</span>
+      <div class="seg" id="seg-conf"></div>
+      <span class="lab" id="leg-colore">Colore = rispetto al budget</span>
+    </div>
+    <div class="b-tabs"><nav class="tabs" id="tabs" role="tablist" aria-label="Schede"></nav><div id="rif"></div></div>
+  </div>
+  <div id="banner-esito" hidden></div>
+  <div class="pane" id="p-panoramica" data-scheda="panoramica">
+  <section id="s01"><h2 class="sec"><span class="num">01</span>I sei numeri in alto <small>valori di fine periodo o somma del periodo, confrontati con la scelta qui sopra</small></h2><div id="sintesi" hidden></div><div class="kpis" id="kpis"></div></section>
+  <section class="main">
+    <div class="card" id="s02"><h2><span class="num">02</span>Cash river <small id="cr-sub">da dove arrivano i soldi e dove vanno, in euro</small></h2><div id="sankey"></div><div id="cr-tot"></div><div id="cr-inc"></div></div>
+    <div class="card" id="s03"><h2><span class="num">03</span>Dal budget all'EBITDA <small>sempre confrontato con il budget</small></h2><div id="cascata"></div><div id="tre-voci"></div></div>
+  </section>
+  </div>
+  <div class="pane" id="p-abbonamenti" data-scheda="abbonamenti">
+  <section id="s04"><h2 class="sec"><span class="num">04</span>Abbonamenti e clienti <small id="t04"></small></h2>
+    <div class="kgrid" id="k04"></div>
+    <div class="duo"><div class="card" id="ponte"></div><div class="card" id="piani"></div></div></section>
+  </div>
+  <div class="pane" id="p-acquisizione" data-scheda="acquisizione">
+  <section id="s05"><h2 class="sec"><span class="num">05</span>Acquisizione <small>quanto costa portare un cliente e quanto rende</small></h2>
+    <div class="kgrid c4" id="k05"></div><div class="card" id="canali" style="margin-top:10px"></div></section>
+  </div>
+  <div class="pane" id="p-conto-economico" data-scheda="conto-economico">
+  <section id="s06"><h2 class="sec"><span class="num">06</span>Conto economico <small>ricavi di competenza e margini</small></h2><div class="kgrid" id="k06"></div></section>
+  </div>
+  <div class="pane" id="p-cassa" data-scheda="cassa">
+  <section id="s07"><h2 class="sec"><span class="num">07</span>Cassa e debiti <small>la cassa mese per mese e i numeri per capire quanto dura</small></h2>
+    <div class="kgrid" id="k07"></div><div class="card" id="grafcassa"><h3>Cassa a fine mese <span class="muted" style="font-weight:400">· fascia azzurra = periodo scelto, pallino blu = fine periodo</span></h3><div id="gc"></div></div></section>
+  </div>
+  <div class="pane" id="p-tolleranze" data-scheda="tolleranze">
+  <section id="s-tol"><h2 class="sec">Tolleranze <small>quando una scheda diventa verde, arancione o rossa</small></h2>
+    <p class="tol-note" id="tol-nota"></p>
+    <div class="tol-bar"><button type="button" id="tol-reset">Torna ai valori di partenza</button><span class="muted" id="tol-stato"></span></div>
+    <div class="tol2" id="tol-tabelle"></div></section>
+  </div>
+  <div class="pane" id="p-controlli" data-scheda="controlli">
+  <section id="s08"><h2 class="sec"><span class="num">08</span>Controlli dei dati <small>i sei controlli fatti dal programma su tutti i mesi</small></h2><div class="card" id="k08"></div></section>
+  </div>
+<!--@@SEZIONI-->
+</div>
+<script src="dati-dashboard.js"></script>
+<script src="esito-aggiornamento.js"></script>
+<script>
+/* ===== Base: dati, formati, stato ===== */
+var D = window.DATI_DASHBOARD || null;
+var E = window.ESITO_AGGIORNAMENTO || null;
+var RENDER = [];            // funzioni di disegno di ogni sezione, richiamate a ogni cambio di selezione
+var ST = { tipo: 'mese', id: null, conf: 'budget' };
+var MENO = '−';
+var RIDOTTO = !!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+function $(s, r) { return (r || document).querySelector(s); }
+function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+/* numeri all'italiana: 451.350 / 4,0% / segno meno vero */
+function num(v, dec) {
+  if (v == null || isNaN(v)) return 'n.d.';
+  dec = dec || 0;
+  var r = Math.abs(v).toFixed(dec), p = r.split('.');
+  var s = p[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (p[1] ? ',' + p[1] : '');
+  return (v < 0 && Number(r) !== 0) ? MENO + s : s;
+}
+function snum(v, dec) { var s = num(v, dec); return (v > 0 && s !== 'n.d.' ? '+' : '') + s; }
+// formati dei KPI: tipo -> { f: testo del valore, d: testo della differenza }
+var FMT = {
+  eur:   { f: function (v) { return num(v, 0); },              d: function (v) { return snum(v, 0); } },
+  int:   { f: function (v) { return num(v, 0); },              d: function (v) { return snum(v, 0); } },
+  pct:   { f: function (v) { return num(v * 100, 1) + '%'; },  d: function (v) { return snum(v * 100, 1) + ' pt'; } },
+  mesi:  { f: function (v) { return num(v, 1) + ' mesi'; },    d: function (v) { return snum(v, 1) + ' mesi'; } },
+  r1:    { f: function (v) { return num(v, 1); },              d: function (v) { return snum(v, 1); } },
+  r2:    { f: function (v) { return num(v, 2); },              d: function (v) { return snum(v, 2); } },
+  pt:    { f: function (v) { return num(v, 0); },              d: function (v) { return snum(v, 0); } }
+};
+function dataIt(iso) { var p = String(iso).slice(0, 10).split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+function maiusc(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+// numero che conta dal valore vecchio al nuovo (elemento grafico 1)
+function contaA(nodo, a, fmt) {
+  var da = nodo._v; nodo._v = a;
+  if (nodo._raf) cancelAnimationFrame(nodo._raf);
+  if (a == null || da == null || RIDOTTO || da === a) { nodo.textContent = a == null ? 'n.d.' : fmt(a); return; }
+  var t0 = performance.now(), dur = 550;
+  (function passo(t) {
+    var k = Math.max(0, Math.min(1, (t - t0) / dur)), e = 1 - Math.pow(1 - k, 3);
+    nodo.textContent = fmt(da + (a - da) * e);
+    if (k < 1) nodo._raf = requestAnimationFrame(passo); else nodo.textContent = fmt(a);
+  })(t0);
+}
+// periodo corrente e confronto corrente
+function per() { return D.periodi[ST.id]; }
+function etichettaPeriodo(p) { return p.etichetta + (p.inCorso ? ' (' + p.notaInCorso + ')' : ''); }
+function confCorrente() { var p = per(); return p.confronti[ST.conf === 'prima' ? 'prima' : ST.conf === 'anno' ? 'anno' : 'budget']; }
+var NOMI_CONF = { prima: 'Periodo prima', budget: 'Budget', anno: 'Anno prima' };
+// differenza e colore rispetto al confronto scelto
+function confronto(k, inverso, tipo) {
+  var kp = per().kpi[k]; if (!kp) return null;
+  var c = kp[ST.conf];
+  if (kp.valore == null) return { nd: true, motivo: (kp.nd && kp.nd.valore) || 'non disponibile' };
+  if (c == null) {
+    var mo = (kp.nd && kp.nd[ST.conf]) || 'non disponibile';
+    // il budget non prevede questa voce: si mostra solo il valore, senza "n.d." e senza nota
+    if (ST.conf === 'budget' && /il budget non prevede/.test(mo)) return { vuoto: true };
+    return { nd: true, motivo: mo };
+  }
+  var diff = kp.valore - c, eps = tipo === 'pct' ? 0.00005 : 0.05;
+  var cls = Math.abs(diff) < eps ? 'flat' : ((diff > 0) !== !!inverso ? 'up' : 'down');
+  return { nd: false, diff: diff, cls: cls, c: c, tri: Math.abs(diff) < eps ? '■' : (diff > 0 ? '▲' : '▼') };
+}
+/* ===== Intestazione e selettori ===== */
+var TIPI = [['mese', 'Mese'], ['trimestre', 'Trimestre'], ['semestre', 'Semestre'], ['anno', 'Anno'], ['mtd', 'Da inizio mese'], ['ytd', 'Da inizio anno']];
+function controlliHtml() {
+  return D.controlli.map(function (c) {
+    var ok = c.esito === 'ok';
+    return '<div class="ctl"><span class="pill ' + (ok ? 'ok' : 'warn') + '">' + (ok ? 'ok' : 'da guardare') + '</span><div><b>' + esc(c.nome) + '</b><div class="muted">' + esc(c.dettaglio) + '</div></div></div>';
+  }).join('');
+}
+function disegnaIntestazione() {
+  var m = D.meta;
+  $('#nome-azienda').textContent = m.nomeAzienda || 'Azienda di software in abbonamento';
+  $('#nota-demo').textContent = 'Dati inventati a scopo dimostrativo';
+  var ag = m.aggiornatoIl || '';
+  $('#agg-testo').textContent = 'Dati fino al ' + dataIt(m.datiFinoAl);
+  var pe = $('#pill-esito'), bn = $('#banner-esito');
+  // data e ora dell'ultimo lancio: al passaggio del mouse (o con la tastiera) sul riquadrino dell'esito
+  if (ag) { pe.setAttribute('data-tip', 'eseguito il ' + dataIt(ag) + ' alle ' + ag.slice(11, 16)); pe.setAttribute('tabindex', '0'); }
+  if (!E) { pe.className = 'pill neutro'; pe.textContent = 'Esito dell\'aggiornamento non disponibile'; }
+  else if (E.esito === 'verde') { pe.className = 'pill ok'; pe.textContent = 'Aggiornamento riuscito · ' + (E.file ? E.file.length : 0) + ' file letti'; }
+  else {
+    pe.className = 'pill ko'; pe.textContent = 'Aggiornamento non riuscito · numeri dell\'aggiornamento precedente';
+    // il messaggio dell'esito dice già file, riga e motivo; si aggiunge solo la frase sui numeri se manca
+    var msg = E.messaggio || 'Aggiornamento non riuscito.';
+    if (!/precedente/.test(msg)) msg += ' La dashboard mostra i numeri dell\'aggiornamento precedente.';
+    bn.innerHTML = '<b>' + esc(msg) + '</b>';
+    bn.hidden = false;
+  }
+  var tot = D.controlli.length, ok = D.controlli.filter(function (c) { return c.esito === 'ok'; }).length;
+  var pc = $('#pill-controlli');
+  pc.textContent = 'Controlli ' + ok + '/' + tot; pc.className = 'pill ' + (ok === tot ? 'ok' : 'warn');
+}
+function elencoPeriodi(tipo) {
+  return Object.keys(D.periodi).filter(function (k) { return D.periodi[k].tipo === tipo; }).reverse();
+}
+function disegnaSelettori() {
+  var st = $('#seg-tipo'); st.innerHTML = '';
+  TIPI.forEach(function (t) {
+    var b = el('button', ST.tipo === t[0] ? 'on' : '', t[1]); b.type = 'button';
+    b.onclick = function () { ST.tipo = t[0]; ST.id = elencoPeriodi(t[0])[0]; aggiorna(); };
+    st.appendChild(b);
+  });
+  var sq = $('#sel-quale'); sq.innerHTML = '';
+  elencoPeriodi(ST.tipo).forEach(function (k) {
+    var o = el('option', '', esc(maiusc(etichettaPeriodo(D.periodi[k])))); o.value = k; if (k === ST.id) o.selected = true; sq.appendChild(o);
+  });
+  sq.onchange = function () { ST.id = sq.value; aggiorna(); };
+  var sc = $('#seg-conf'); sc.innerHTML = '';
+  [['prima', 'Periodo prima'], ['budget', 'Budget'], ['anno', 'Anno prima']].forEach(function (c) {
+    var b = el('button', ST.conf === c[0] ? 'on' : '', c[1]); b.type = 'button';
+    b.onclick = function () { ST.conf = c[0]; aggiorna(); };
+    sc.appendChild(b);
+  });
+  var cf = confCorrente();
+  $('#rif').innerHTML = 'Periodo: <b>' + esc(etichettaPeriodo(per())) + '</b> · confronto con ' + NOMI_CONF[ST.conf].toLowerCase() + ': <b>' + esc(cf ? cf.etichetta : 'n.d.') + '</b>';
+}
+function aggiorna() {
+  disegnaSelettori();
+  RENDER.forEach(function (f) { f(); });
+}
+/* tooltip della pagina: si apre su qualunque elemento con data-tip, al passaggio del mouse o con la tastiera */
+(function () {
+  var tip = $('#tip'), cur = null;
+  function mostra(t) {
+    var s = t.getAttribute('data-tip'); if (!s) return;
+    cur = t; tip.textContent = s; tip.style.display = 'block';
+    var r = t.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    var x = Math.max(6, Math.min(r.left, window.innerWidth - w - 6));
+    var y = r.bottom + 6; if (y + h > window.innerHeight - 6) y = Math.max(6, r.top - h - 6);
+    tip.style.left = x + 'px'; tip.style.top = y + 'px';
+  }
+  function nascondi() { cur = null; tip.style.display = 'none'; }
+  document.addEventListener('mouseover', function (e) { var t = e.target.closest ? e.target.closest('[data-tip]') : null; if (t) { if (t !== cur) mostra(t); } else if (cur) nascondi(); });
+  document.addEventListener('focusin', function (e) { var t = e.target.closest ? e.target.closest('[data-tip]') : null; if (t) mostra(t); });
+  document.addEventListener('focusout', nascondi);
+  window.addEventListener('scroll', nascondi, true);
+})();
+<!--@@JS-CORE-->
+</script>
+<script>
+/* ===== Schede dei KPI (usate in tutte le sezioni) e sezione 01 ===== */
+// Soglie con fonte (costanti scritte qui con la fonte accanto: elemento grafico 5)
+// verso 'basso' = più basso è meglio; g = limite del verde, o = limite dell'arancione (oltre: rosso).
+// Il verde parte a 20% di distanza dalla soglia (valore di partenza), l'arancione è la fascia di avvicinamento.
+var FONTE_SOGLIE = 'valore di partenza, da adattare alla tua azienda nella linguetta Tolleranze';
+var SOGLIE = {
+  rientroCac12m: { lab: 'Rientro del CAC', verso: 'basso', g: 14.4, o: 18, u: ' mesi', dec: 1, regola: 'soglia: rientro entro 18 mesi', fonte: FONTE_SOGLIE },
+  ltvSuCac: { lab: 'LTV / CAC', verso: 'alto', g: 3.6, o: 3, u: '', dec: 1, regola: 'soglia: almeno 3', fonte: FONTE_SOGLIE },
+  quickRatio: { lab: 'Quick ratio', verso: 'alto', g: 1.2, o: 1, u: '', dec: 1, regola: 'sopra 1 entra più ricavo di quanto ne esce', fonte: FONTE_SOGLIE },
+  runwayEbitda: { lab: 'Runway sul conto economico', verso: 'alto', g: 18, o: 6, u: ' mesi', dec: 0, regola: 'soglia: rossa sotto 6 mesi, verde da 18', fonte: FONTE_SOGLIE },
+  runwayCassa: { lab: 'Runway sulla cassa', verso: 'alto', g: 18, o: 6, u: ' mesi', dec: 0, regola: 'soglia: rossa sotto 6 mesi, verde da 18', fonte: FONTE_SOGLIE }
+};
+var BUDGET_BASE = { g: 5, o: 10 };   // scostamento sfavorevole dal budget, in % (valori di partenza)
+var CHIAVE_TOLL = 'dashboardKpiTolleranze';
+function tolOrdineOk(verso, g, o) { return verso === 'basso' ? g <= o : g >= o; }
+function tolLeggi() {
+  var r = {};
+  try {
+    var s = window.localStorage.getItem(CHIAVE_TOLL);
+    if (s) {
+      var o = JSON.parse(s);
+      if (o && typeof o === 'object') Object.keys(o).forEach(function (k) {
+        var x = o[k], v = SOGLIE[k] ? SOGLIE[k].verso : 'alto';
+        if (x && typeof x.g === 'number' && typeof x.o === 'number' && isFinite(x.g) && isFinite(x.o) && (SOGLIE[k] ? tolOrdineOk(v, x.g, x.o) : (x.g >= 0 && x.g <= x.o))) r[k] = { g: x.g, o: x.o };
+      });
+    }
+  } catch (e) {}
+  return r;
+}
+function tolScrivi() { try { window.localStorage.setItem(CHIAVE_TOLL, JSON.stringify(TOLU)); return true; } catch (e) { return false; } }
+var TOLU = tolLeggi();      // soglie cambiate da chi apre la pagina
+function tolDi(k) { var b = SOGLIE[k] || BUDGET_BASE, u = TOLU[k]; return u ? { g: u.g, o: u.o } : { g: b.g, o: b.o }; }
+function tolTesto(k) {
+  var s = SOGLIE[k], t = tolDi(k);
+  if (!s) return 'verde fino al ' + num(t.g, t.g % 1 ? 1 : 0) + '%, arancione fino al ' + num(t.o, t.o % 1 ? 1 : 0) + '%, rosso oltre';
+  return s.verso === 'basso' ? 'verde fino a ' + num(t.g, s.dec) + s.u + ', arancione fino a ' + num(t.o, s.dec) + s.u + ', rosso oltre'
+    : 'verde da ' + num(t.g, s.dec) + s.u + ', arancione da ' + num(t.o, s.dec) + s.u + ' a ' + num(t.g, s.dec) + s.u + ', rosso sotto ' + num(t.o, s.dec) + s.u;
+}
+// stato di una scheda: { c: 'g'|'o'|'r', tip } oppure null (nessuna soglia e nessun budget)
+function statoKpi(k, kp, inv, fmt) {
+  if (!kp || kp.valore == null) return null;
+  var v = kp.valore, t = tolDi(k), s = SOGLIE[k], c, det;
+  if (s) {
+    c = s.verso === 'basso' ? (v <= t.g ? 'g' : v <= t.o ? 'o' : 'r') : (v >= t.g ? 'g' : v >= t.o ? 'o' : 'r');
+    det = 'Valore ' + fmt(v) + '. Regola (' + s.regola + '): ' + tolTesto(k) + '. Fonte: ' + s.fonte + '.';
+  } else {
+    if (kp.budget == null || kp.ns) return null;
+    var b = kp.budget, sf = inv ? v - b : b - v, pct = sf <= 0 ? 0 : (b === 0 ? Infinity : sf / Math.abs(b) * 100);
+    c = pct <= t.g ? 'g' : pct <= t.o ? 'o' : 'r';
+    det = (sf <= 0 ? 'Scostamento dal budget a favore o nullo' : 'Scostamento sfavorevole dal budget: ' + (isFinite(pct) ? num(pct, 1) + '%' : 'oltre ogni misura')) + ' (budget ' + fmt(b) + '). Regola: ' + tolTesto(k) + '.';
+  }
+  var nome = { g: 'Verde: entro la tolleranza.', o: 'Arancione, da monitorare: vicino al limite.', r: 'Rosso: oltre la tolleranza.' }[c];
+  return { c: c, tip: nome + ' ' + det };
+}
+function infoHtml(txt) { return '<i class="info" tabindex="0" data-tip="' + esc(txt) + '" aria-label="' + esc(txt) + '">i</i>'; }
+var PREV = {};   // valori mostrati l'ultima volta, da cui partono i numeri che contano
+// piccolo grafico dell'andamento mensile, con il punto finale evidenziato
+function sparkSvg(serie, mesi, fine, w, h) {
+  var S = D.serieMensile[serie]; if (!S) return '';
+  var pts = [], vals = [];
+  D.meta.mesi.forEach(function (m, i) { var v = S[m]; if (v != null) vals.push(v); });
+  if (vals.length < 2) return '';
+  var mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals), n = D.meta.mesi.length, pad = 4;
+  if (mx === mn) { mx += 1; mn -= 1; }
+  var d = '', pen = false, fx = null, fy = null;
+  D.meta.mesi.forEach(function (m, i) {
+    var v = S[m]; if (v == null) { pen = false; return; }
+    var x = pad + i * (w - 2 * pad) / (n - 1), y = h - pad - (v - mn) * (h - 2 * pad) / (mx - mn);
+    d += (pen ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1); pen = true;
+    if (m === fine) { fx = x; fy = y; }
+  });
+  return '<svg class="spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><path d="' + d + '" fill="none" stroke="#93A4C4" stroke-width="1.6" stroke-linejoin="round"/>' +
+    (fx != null ? '<circle cx="' + fx.toFixed(1) + '" cy="' + fy.toFixed(1) + '" r="3.2" fill="#2563EB"/>' : '') + '</svg>';
+}
+// scheda di un KPI: def = { k, lab, t (formato), inv (meno è meglio), sub, serie, chiave }
+function schedaKpi(def) {
+  var p = per(), kp = p.kpi[def.k];
+  var box = el('div', 'card kpi');
+  if (!kp) { box.innerHTML = '<div class="lab">' + esc(def.lab) + '</div><div class="val ns">n.d.</div>'; return box; }
+  var f = FMT[def.t];
+  var cf = confronto(def.k, def.inv, def.t);
+  var fine = p.mesi[p.mesi.length - 1];
+  var vuoto = kp.valore == null;
+  var valHtml = '<span class="v" data-k="' + def.chiave + '" data-v="' + (vuoto ? '' : kp.valore) + '" data-t="' + def.t + '">' + (vuoto ? 'n.d.' : f.f(kp.valore)) + '</span>';
+  // note "n.d." e "n.s.": un segno accanto al numero, la spiegazione compare al passaggio del mouse
+  var ns = vuoto ? infoHtml((kp.nd && kp.nd.valore) || 'non disponibile') : (kp.ns ? '<span class="badge-ns" tabindex="0" data-tip="' + esc(kp.ns) + '">n.s.</span>' : '');
+  var delta = '';
+  if (cf && !vuoto && !cf.vuoto) {
+    if (cf.nd) delta = '<span class="flat">n.d.</span>' + infoHtml(cf.motivo);
+    // la striscia resta contro il budget; la freccia è grigia quando il confronto è "Periodo prima" o "Anno prima",
+    // e sempre sulle schede "n.s." (decisione 12: un rapporto che non dice niente non ha freccia verde o rossa)
+    else delta = '<span class="' + (ST.conf === 'budget' && !kp.ns ? cf.cls : 'flat') + '">' + cf.tri + ' ' + f.d(cf.diff) + '</span><small>' + NOMI_CONF[ST.conf].toLowerCase() + ': ' + f.f(cf.c) + '</small>';
+  }
+  var sub = vuoto ? '' : (def.sub ? def.sub(p, kp) : '');
+  var st = statoKpi(def.k, kp, def.inv, f.f);
+  var strip = st ? '<span class="strip ' + st.c + '" tabindex="0" data-tip="' + esc(st.tip) + '" aria-label="' + esc(st.tip) + '"></span>' : '';
+  var mon = st && st.c === 'o' ? '<span class="badge-mon" data-tip="' + esc(st.tip) + '">da monitorare</span>' : '';
+  // testo facoltativo al passaggio del mouse: def.tip(p, kp) restituisce una stringa (vuota = nessun segno)
+  var tipTxt = def.tip && !vuoto ? def.tip(p, kp) : '';
+  box.innerHTML = strip + '<div class="lab">' + esc(def.lab) + (tipTxt ? infoHtml(tipTxt) : '') + mon + '</div><div class="val' + (kp.ns || vuoto ? ' ns' : '') + '">' + valHtml + ns + '</div><div class="sub">' + sub + '</div>' +
+    '<div class="bot"><div class="delta">' + delta + '</div>' + (def.serie ? sparkSvg(def.serie, p.mesi, fine, 92, 30) : '') + '</div>';
+  var nodo = box.querySelector('.v');
+  nodo._v = PREV[def.chiave];
+  if (kp.valore != null) contaA(nodo, kp.valore, f.f);
+  PREV[def.chiave] = kp.valore;
+  return box;
+}
+var SEI = [
+  { k: 'mrr', lab: 'MRR', t: 'eur', serie: 'mrr', sub: function () { return 'ricavo mensile ricorrente, in euro'; } },
+  { k: 'clientiAttivi', lab: 'Clienti attivi', t: 'int', serie: 'clientiAttivi', sub: function (p) { return num(p.kpi.clientiNuovi.valore) + ' nuovi e ' + num(p.kpi.clientiPersi.valore) + ' persi nel periodo'; } },
+  { k: 'churn', lab: 'Churn', t: 'pct', inv: true, serie: 'churn', sub: function (p) { return (p.tipo === 'mese' ? 'clienti persi nel mese' : 'media mensile') + ' · ' + num(p.kpi.clientiPersi.valore) + ' persi'; } },
+  { k: 'rientroCac12m', lab: 'Rientro del CAC (12 mesi)', t: 'mesi', inv: true, serie: 'rientroCac12m', sub: function (p) { return 'mesi per rientrare della spesa di acquisizione clienti (CAC)'; } },
+  { k: 'margineEbitda', lab: 'Margine EBITDA', t: 'pct', serie: 'margineEbitda', sub: function (p) { return 'EBITDA (margine prima di interessi, imposte e ammortamenti): ' + num(p.kpi.ebitda.valore) + ' euro'; } },
+  { k: 'runwayEbitda', lab: 'Runway (mesi di cassa)', t: 'mesi', serie: 'runwayEbitda', sub: function (p) { var r = p.kpi.runwayCassa, c = p.kpi.cassaFine; return 'al ritmo reale della cassa: ' + (r.valore == null ? 'n.d.' : num(r.valore, 1) + ' mesi') + ' · cassa ' + num(c.valore); },
+    tip: function (p, kp) { return kp.valore == null ? '' : 'La cassa scende più piano della perdita perché i clienti annuali pagano in anticipo: sono soldi da \'restituire\' in servizio, per questo il numero prudente è ' + num(kp.valore, 1) + '.'; } }
+];
+/* riga di sintesi sopra i sei numeri: costruita dal codice per ogni periodo, sempre contro il budget; senza budget (MRR o EBITDA) non compare */
+function sintesiPeriodo() {
+  var p = per(), c = p.cascata, mrr = p.kpi.mrr;
+  if (!mrr || mrr.valore == null || mrr.budget == null || !c || c.budgetEbitda == null || c.ebitda == null || !c.effetti) return '';
+  var pezzi = [];
+  var st = statoKpi('mrr', mrr, false, FMT.eur.f), dm = mrr.valore - mrr.budget;
+  // "in linea" solo se verde e, sopra il budget, entro la soglia del verde della linguetta Tolleranze (14/11 notte)
+  var sopraTroppo = dm > 0 && mrr.budget > 0 && dm / mrr.budget * 100 > tolDi('mrr').g;
+  pezzi.push(st && st.c === 'g' && !sopraTroppo ? 'ricavi in linea con il budget' : 'ricavi ' + (dm > 0 ? 'sopra' : 'sotto') + ' il budget di ' + num(Math.abs(dm)));
+  var de = c.ebitda - c.budgetEbitda;
+  if (Math.abs(de) < 0.5) pezzi.push('EBITDA uguale al budget');
+  else {
+    var t = 'EBITDA ' + num(Math.abs(de)) + (de < 0 ? ' sotto' : ' sopra') + ' il budget', v = null;
+    (p.treVoci || []).some(function (x) {
+      var costo = x.voce !== 'ricavi', effetto = costo ? -x.scostamento : x.scostamento;
+      if (effetto !== 0 && (effetto > 0) === (de > 0)) { v = x; return true; }
+      return false;
+    });
+    if (v) {
+      var costoV = v.voce !== 'ricavi';
+      var ART = { ricavi: 'i ', costoServizio: 'il ', personale: 'il ', pubblicita: 'la ', altriCosti: 'gli ' };   // l'esempio del testo dice "per la pubblicità"
+      t += ', soprattutto per ' + (ART[v.voce] || '') + (NOME_VOCE[v.voce] || v.voce).toLowerCase() + ' ('+ (costoV ? snum(v.scostamento) + ' spesi' : num(Math.abs(v.scostamento)) + (v.scostamento > 0 ? ' in più' : ' in meno')) + ')';
+    }
+    pezzi.push(t);
+  }
+  var rw = p.kpi.runwayEbitda;
+  if (rw && rw.valore != null) pezzi.push('cassa per ' + FMT.mesi.f(rw.valore));
+  return maiusc(p.etichetta) + ': ' + pezzi.join(' · ');
+}
+RENDER.push(function () {
+  var c = $('#kpis'); c.innerHTML = '';
+  var s = sintesiPeriodo(), sn = $('#sintesi');
+  sn.textContent = s; sn.hidden = !s;
+  SEI.forEach(function (d) { d.chiave = '01:' + d.k; c.appendChild(schedaKpi(d)); });
+});
+</script>
+<script>
+/* ===== 02 Cash river (diagramma a flussi) ===== */
+function bandaSankey(x1, a1, b1, x2, a2, b2) {
+  var xm = (x1 + x2) / 2;
+  return 'M' + x1 + ' ' + a1 + 'C' + xm + ' ' + a1 + ' ' + xm + ' ' + a2 + ' ' + x2 + ' ' + a2 + 'L' + x2 + ' ' + b2 + 'C' + xm + ' ' + b2 + ' ' + xm + ' ' + b1 + ' ' + x1 + ' ' + b1 + 'Z';
+}
+// le due voci di saldo che chiudono il fiume (fuori dai totali): si riconoscono dal nome esatto
+var RISERVA_DA = 'Calo della cassa', RISERVA_A = 'Aumento della cassa';
+function riservaVoce(nome) { return nome === RISERVA_DA || nome === RISERVA_A; }
+// riga sotto il grafico: incassi contro ricavi, dai numeri del programma
+function rigaIncassi() {
+  var p = per(), k = p.kpi.incassiControRicavi, v = k && k.valore;
+  if (!v) return '';
+  var mese = p.tipo === 'mese' ? String(p.etichetta).split(' ')[0].toLowerCase() : 'del periodo', quando = p.tipo === 'mese' ? 'di ' + mese : mese;
+  var base = 'Incassi ' + num(v.incassi) + ' contro ricavi ' + num(v.ricavi);
+  if (Math.abs(v.differenza) < 0.5) return 'Incassi e ricavi uguali: ' + num(v.incassi);
+  if (v.differenza < 0) return base + ': ' + num(-v.differenza) + ' in meno perché parte del servizio ' + quando + ' era già stata pagata nei mesi prima (piani annuali pagati in anticipo)';
+  return base + ': ' + num(v.differenza) + ' in più perché i clienti annuali hanno pagato in anticipo il servizio dei mesi futuri';
+}
+function disegnaSankey() {
+  $('#cr-inc').textContent = rigaIncassi();
+  var box = $('#sankey'), W = box.clientWidth, H = box.clientHeight;
+  if (W < 300 || H < 200) return;
+  var s = per().sankey, en = s.entrate, us = s.uscite;
+  var L = [
+    ['Start mensile', en.start, '#93C5FD'], ['Team annuale', en.team, '#3B82F6'], ['Business annuale', en.business, '#1D4ED8'],
+    ['Quote di attivazione', en.attivazione, '#14B8A6'], ['Erogazione del finanziamento', en.erogazione, '#8B5CF6'], [RISERVA_DA, en.dallaRiserva, '#F472B6']
+  ].filter(function (x) { return x[1] > 0.5; });
+  var R = [
+    ['Personale', us.personale, '#64748B'], ['Pubblicità', us.pubblicita, '#F59E0B'], ['Costo del servizio', us.costoServizio, '#6366F1'], ['Altri costi', us.altriCosti, '#9CA3AF'],
+    ['Rate del finanziamento', us.rate, '#0EA5E9', 'di cui interessi ' + num(us.interessiNelleRate)], ['Rimborsi', us.rimborsi, '#EF4444'], [RISERVA_A, us.allaRiserva, '#16A34A']
+  ].filter(function (x) { return x[1] > 0.5; });
+  var T = L.reduce(function (a, x) { return a + x[1]; }, 0);
+  // totali veri: "dalla riserva" e "alla riserva" restano fuori (sono il saldo che chiude il fiume)
+  var TE = en.start + en.team + en.business + en.attivazione + en.erogazione;
+  var TU = us.personale + us.pubblicita + us.costoServizio + us.altriCosti + us.rate + us.rimborsi;
+  function perc(x, tot) { return tot > 0 ? num(x / tot * 100, 1) + '%' : 'n.d.'; }
+  L.forEach(function (x) { x[4] = riservaVoce(x[0]) ? 'fuori dai totali' : perc(x[1], TE); });
+  R.forEach(function (x) { x[4] = riservaVoce(x[0]) ? 'fuori dai totali' : perc(x[1], TU); });
+  var CH = 6.7;   // larghezza media di un carattere a 12 px, per lasciare ai nomi lo spazio che serve
+  var ML = Math.max(190, Math.max.apply(null, L.map(function (x) { return Math.max(x[0].length, (num(x[1]) + ' · ' + x[4]).length); })) * CH + 30);
+  var MR = Math.max(190, Math.max.apply(null, R.map(function (x) { return Math.max(x[0].length + (x[3] ? x[3].length + 3 : 0), (num(x[1]) + ' · ' + x[4]).length); })) * CH + 30);
+  var GAP = 8, SLOT = 34, HH = H - 30;
+  var k = (HH - GAP * 6) / T;
+  function slotti(arr) { return arr.reduce(function (a, x) { return a + Math.max(x[1] * k, SLOT) + GAP; }, -GAP); }
+  while (Math.max(slotti(L), slotti(R)) > HH) k *= 0.97;
+  var xs = ML, xe = W - MR, xc = (xs + xe) / 2 - 7, NW = 14;
+  var out = '', dots = '', txt = '', cy = 22 + HH / 2;
+  function colonna(arr, lato) {
+    var y = 22 + (HH - slotti(arr)) / 2, res = [];
+    arr.forEach(function (x) {
+      var hh = Math.max(x[1] * k, 3), slot = Math.max(x[1] * k, SLOT);
+      res.push({ x: x, h: hh, y: y + (slot - hh) / 2, ym: y + slot / 2 }); y += slot + GAP;
+    });
+    return res;
+  }
+  var nl = colonna(L), nr = colonna(R);
+  var sumL = nl.reduce(function (a, n) { return a + n.h; }, 0), sumR = nr.reduce(function (a, n) { return a + n.h; }, 0);
+  var cH = Math.max(sumL, sumR), cTop = cy - cH / 2, yl = cy - sumL / 2, yr = cy - sumR / 2, idx = 0;
+  function punti(path, col) {
+    if (RIDOTTO) return '';
+    idx++;
+    return [0, 1].map(function (i) { return '<circle r="2.6" fill="' + col + '" stroke="#fff" stroke-width="1"><animateMotion dur="' + (3.4 + (idx % 3) * 0.4) + 's" begin="-' + ((idx * 0.7 + i * 1.7) % 3.4).toFixed(2) + 's" repeatCount="indefinite" path="' + path + '"/></circle>'; }).join('');
+  }
+  // versione 6, 14/11: i puntini non passano sopra la cifra scritta dentro la banda.
+  // La curva della banda (x0 -> x3) si taglia nel punto in cui x vale xt: 'dopo' tiene il tratto da xt alla fine, 'prima' quello dall'inizio a xt.
+  function curvaTagliata(x0, y0, x1, y1, x2, y2, x3, y3, xt, parte) {
+    var lo = 0, hi = 1, t, i, mt, x;
+    for (i = 0; i < 30; i++) { t = (lo + hi) / 2; mt = 1 - t; x = mt * mt * mt * x0 + 3 * mt * mt * t * x1 + 3 * mt * t * t * x2 + t * t * t * x3; if (x < xt) lo = t; else hi = t; }
+    t = (lo + hi) / 2;
+    function mezzo(p, q) { return [p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]; }
+    var P0 = [x0, y0], P1 = [x1, y1], P2 = [x2, y2], P3 = [x3, y3], a = mezzo(P0, P1), b = mezzo(P1, P2), c = mezzo(P2, P3), d = mezzo(a, b), e = mezzo(b, c), f = mezzo(d, e);
+    var q = parte === 'dopo' ? [f, e, c, P3] : [P0, a, d, f];
+    function pt(p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }
+    return 'M' + pt(q[0]) + 'C' + pt(q[1]) + ' ' + pt(q[2]) + ' ' + pt(q[3]);
+  }
+  // larghezza della cifra in grassetto a 12 px, un po' abbondante (7,2 px per carattere) più 8 px di respiro
+  function spazioCifra(v) { return 12 + String(num(v)).length * 7.2 + 8; }
+  nl.forEach(function (n) {
+    var c = n.x[2], b = bandaSankey(xs, n.y, n.y + n.h, xc, yl, yl + n.h);
+    out += '<path d="' + b + '" fill="' + c + '" opacity=".4"/><rect x="' + (xs - NW) + '" y="' + n.y + '" width="' + NW + '" height="' + n.h + '" rx="2" fill="' + c + '"/>';
+    var ya = n.y + n.h / 2, yb = yl + n.h / 2, xmL = (xs + xc) / 2, xtL = xs + spazioCifra(n.x[1]);
+    dots += punti(n.h >= 16 && xtL < xmL ? curvaTagliata(xs, ya, xmL, ya, xmL, yb, xc, yb, xtL, 'dopo')
+      : 'M' + xs + ' ' + ya + 'C' + xmL + ' ' + ya + ' ' + xmL + ' ' + yb + ' ' + xc + ' ' + yb, c);
+    if (n.h >= 16) txt += '<text x="' + (xs + 12) + '" y="' + (n.y + n.h / 2 + 4) + '" font-size="12" font-weight="600" fill="#111827">' + num(n.x[1]) + '</text>';
+    out += '<text x="' + (xs - NW - 8) + '" y="' + (n.ym - 3) + '" text-anchor="end" font-size="12" font-weight="600" fill="' + (riservaVoce(n.x[0]) ? '#BE185D' : '#1F2937') + '">' + esc(n.x[0]) + '</text>' +
+      '<text x="' + (xs - NW - 8) + '" y="' + (n.ym + 12) + '" text-anchor="end" font-size="12" fill="#6B7280">' + num(n.x[1]) + ' · ' + n.x[4] + '</text>';
+    yl += n.h;
+  });
+  nr.forEach(function (n) {
+    var c = n.x[2], b = bandaSankey(xc + NW, yr, yr + n.h, xe, n.y, n.y + n.h);
+    out += '<path d="' + b + '" fill="' + c + '" opacity=".4"/><rect x="' + xe + '" y="' + n.y + '" width="' + NW + '" height="' + n.h + '" rx="2" fill="' + c + '"/>';
+    var x1 = xc + NW, xm = (x1 + xe) / 2;
+    var yc = yr + n.h / 2, yd = n.y + n.h / 2, xtR = xe - spazioCifra(n.x[1]);
+    dots += punti(n.h >= 16 && xtR > xm ? curvaTagliata(x1, yc, xm, yc, xm, yd, xe, yd, xtR, 'prima')
+      : 'M' + x1 + ' ' + yc + 'C' + xm + ' ' + yc + ' ' + xm + ' ' + yd + ' ' + xe + ' ' + yd, c);
+    if (n.h >= 16) txt += '<text x="' + (xe - 12) + '" y="' + (n.y + n.h / 2 + 4) + '" text-anchor="end" font-size="12" font-weight="600" fill="#111827">' + num(n.x[1]) + '</text>';
+    out += '<text x="' + (xe + NW + 8) + '" y="' + (n.ym - 3) + '" font-size="12" font-weight="600" fill="' + (riservaVoce(n.x[0]) ? '#15803D' : '#1F2937') + '">' + esc(n.x[0]) + (n.x[3] ? ' <tspan font-weight="400" fill="#6B7280">(' + esc(n.x[3]) + ')</tspan>' : '') + '</text>' +
+      '<text x="' + (xe + NW + 8) + '" y="' + (n.ym + 12) + '" font-size="12" fill="#6B7280">' + num(n.x[1]) + ' · ' + n.x[4] + '</text>';
+    yr += n.h;
+  });
+  out += '<rect x="' + xc + '" y="' + cTop + '" width="' + NW + '" height="' + cH + '" rx="2" fill="#CBD5E1"/>' +
+    '<text x="' + (xc + NW / 2) + '" y="' + (cTop - 8) + '" text-anchor="middle" font-size="12" font-weight="600" fill="#1F2937">Totale ' + num(T) + '</text>';
+  box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cash river: entrate a sinistra, uscite a destra">' + out + dots + txt + '</svg>';
+  var saldo = TE - TU;
+  $('#cr-tot').innerHTML = '<div>Totale entrate<br><b>' + num(TE) + '</b></div><div class="c">Saldo del periodo<br><b class="' + (saldo < -0.5 ? 'down' : saldo > 0.5 ? 'up' : 'flat') + '">' + num(saldo) + '</b></div><div class="d">Totale uscite<br><b>' + num(TU) + '</b></div>';
+  $('#cr-sub').textContent = 'entrate a sinistra, uscite a destra, in euro · ' + (en.dallaRiserva > 0 ? 'la cassa scende di ' + num(en.dallaRiserva) : 'la cassa sale di ' + num(us.allaRiserva)) + ' nel periodo';
+}
+RENDER.push(disegnaSankey);
+</script>
+<script>
+/* ===== 03 Dal budget all'EBITDA (cascata) e le tre voci più lontane ===== */
+var NOME_VOCE = { ricavi: 'Ricavi', costoServizio: 'Costo del servizio', personale: 'Personale', pubblicita: 'Pubblicità', altriCosti: 'Altri costi' };
+function disegnaCascata() {
+  var p = per(), c = p.cascata, box = $('#cascata'), tv = $('#tre-voci');
+  if (!c || c.budgetEbitda == null || !c.effetti) {
+    box.innerHTML = '<div class="nd-box"><b>n.d.</b><br>Per questo periodo il budget non c\'è: ' + esc((p.kpi.ebitda && p.kpi.ebitda.nd && p.kpi.ebitda.nd.budget) || 'il budget c\'è solo per il 2026') + '. Senza budget non si può dire quanto ogni voce ha spostato l\'EBITDA.</div>';
+    tv.innerHTML = ''; tv.style.display = 'none'; return;
+  }
+  tv.style.display = '';
+  if (!box.offsetWidth) return;
+  // l'altezza è quella che resta nella scheda; in alto e in basso c'è sempre il posto per i valori, sotto le barre per i nomi (fino a 3 righe)
+  var W = box.clientWidth, H = Math.max(box.clientHeight, 200), top = 24, bot = 56, L = 4, R = 4, VP = 20;
+  var passi = [{ n: 'EBITDA di budget', v: c.budgetEbitda, tot: true, col: '#94A3B8' }];
+  ['ricavi', 'costoServizio', 'personale', 'pubblicita', 'altriCosti'].forEach(function (k) { passi.push({ n: NOME_VOCE[k], v: c.effetti[k] }); });
+  passi.push({ n: 'EBITDA effettivo', v: c.ebitda, tot: true, col: '#2563EB' });
+  // i due EBITDA sono livelli (segno sottile), gli effetti sono barre sospese: la scala parte dal livello più basso, non da zero
+  var cum = 0, lv = [];
+  passi.forEach(function (s) { if (s.tot) { s.a = s.v; s.b = s.v; cum = s.v; } else { s.a = cum; s.b = cum + s.v; cum = s.b; } lv.push(s.a, s.b); });
+  var mn = Math.min.apply(null, lv), mx = Math.max.apply(null, lv); if (mx === mn) mx = mn + 1;
+  // la scala lascia VP pixel sopra e sotto: il valore di ogni barra (anche la più piccola) sta sempre dentro l'area
+  var ar = H - top - bot - 2 * VP, pad = (mx - mn) * 0.04; mn -= pad; mx += pad;
+  var ys = function (v) { return top + VP + (mx - v) * ar / (mx - mn); };
+  var n = passi.length, cw = (W - L - R) / n, bw = Math.min(54, cw * .62), out = '';
+  // le barre salgono con un'animazione solo quando cambiano periodo o confronto, non a ogni ridisegno (per esempio al ridimensionamento)
+  var sigC = ST.id + '|' + ST.conf, animaC = sigC !== disegnaCascata.sig; disegnaCascata.sig = sigC;
+  if (mn < 0 && mx > 0) out += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + ys(0) + '" y2="' + ys(0) + '" stroke="#9CA3AF" stroke-dasharray="3 3"/><text x="' + L + '" y="' + (ys(0) - 4) + '" font-size="12" fill="#9CA3AF">zero</text>';
+  passi.forEach(function (s, i) {
+    var x = L + i * cw + (cw - bw) / 2, y1 = ys(Math.max(s.a, s.b)), y2 = ys(Math.min(s.a, s.b)), h = Math.max(y2 - y1, 2);
+    if (s.tot) { y1 -= 4; h = 8; y2 = y1 + 8; }
+    var col = s.col || (s.v >= 0 ? '#16A34A' : '#DC2626');
+    var up = s.v >= 0, ty = s.tot ? y1 - 7 : (up ? y1 - 6 : y2 + 15);
+    ty = Math.max(top + 12, Math.min(ty, H - bot - 6));   // mai fuori dall'area
+    out += '<g' + (animaC ? ' class="bar" style="animation-delay:' + (i * 140) + 'ms"' : '') + '><rect x="' + x + '" y="' + y1 + '" width="' + bw + '" height="' + h + '" rx="3" fill="' + col + '"/>' +
+      '<text x="' + (x + bw / 2) + '" y="' + ty + '" text-anchor="middle" font-size="12" font-weight="600" fill="#1F2937">' + (s.tot ? num(s.v) : snum(s.v)) + '</text></g>';
+    // il nome va a capo per parole, in base allo spazio della colonna
+    var maxc = Math.max(6, Math.floor((cw - 6) / 6.4)), righe = [], cur = '';
+    s.n.split(' ').forEach(function (w) { if (cur && (cur + ' ' + w).length > maxc) { righe.push(cur); cur = w; } else cur = cur ? cur + ' ' + w : w; });
+    if (cur) righe.push(cur);
+    righe.forEach(function (r, j) { out += '<text x="' + (x + bw / 2) + '" y="' + (H - bot + 16 + j * 14) + '" text-anchor="middle" font-size="12" fill="#6B7280">' + esc(r) + '</text>'; });
+    if (i < n - 1) { var nx = L + (i + 1) * cw + (cw - bw) / 2; out += '<line x1="' + (x + bw) + '" x2="' + nx + '" y1="' + ys(s.b) + '" y2="' + ys(s.b) + '" stroke="#CBD5E1"/>'; }
+  });
+  box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cascata dall\'EBITDA di budget a quello effettivo" style="font-family:inherit">' + out + '</svg>';
+  var righe = (p.treVoci || []).map(function (t) {
+    var costo = t.voce !== 'ricavi', pos = t.scostamento > 0, buono = costo ? !pos : pos;
+    var testo = costo ? (pos ? 'speso più del budget' : 'speso meno del budget') : (pos ? 'sopra il budget' : 'sotto il budget');
+    return '<div class="voce"><b>' + esc(NOME_VOCE[t.voce] || t.voce) + '</b><div><span class="' + (buono ? 'up' : 'down') + '"><b>' + (buono ? '▲' : '▼') + ' ' + snum(t.scostamento) + '</b></span> euro<small>' + testo + '</small></div></div>';
+  }).join('');
+  tv.innerHTML = '<h3>Le tre voci più lontane dal budget</h3>' + righe;
+}
+RENDER.push(disegnaCascata);
+</script>
+<script>
+/* ===== 04 Abbonamenti e clienti, 05 Acquisizione ===== */
+function riempiSchede(idBox, prefisso, lista) {
+  var c = $(idBox); c.innerHTML = '';
+  lista.forEach(function (d) { d.chiave = prefisso + ':' + d.k; c.appendChild(schedaKpi(d)); });
+}
+function sotto(t) { return function () { return t; }; }
+var K04 = [
+  { k: 'arr', lab: 'ARR', t: 'eur', sub: sotto('ricavo annuo ricorrente (MRR per 12), in euro') },
+  { k: 'arpu', lab: 'ARPU', t: 'eur', sub: sotto('ricavo mensile medio per cliente, in euro') },
+  { k: 'grr', lab: 'GRR', t: 'pct', sub: sotto('quanta parte del MRR di inizio periodo si è tenuta') },
+  { k: 'quickRatio', lab: 'Quick ratio', t: 'r1', sub: sotto('MRR guadagnato diviso MRR perso'), tip: function (p, kp) {
+      var qp = p.kpi.quickRatioPezzi, a = qp && qp.valore;
+      if (!a || !(a.mrrPerso > 0) || kp.valore == null) return '';
+      var t = 'MRR guadagnato ' + num(a.mrrGuadagnato) + ' diviso MRR perso ' + num(a.mrrPerso) + ' = ' + num(kp.valore, 1) + '.';
+      var b = (ST.conf === 'anno' || ST.conf === 'prima') && qp[ST.conf];   // stesso campo del periodo di confronto, come in confronto()
+      if (b && b.mrrPerso > 0) t += ' ' + (ST.conf === 'anno' ? 'Un anno fa' : 'Periodo prima') + ': ' + num(b.mrrGuadagnato) + ' diviso ' + num(b.mrrPerso) + ' = ' + num(b.mrrGuadagnato / b.mrrPerso, 1) + '.';
+      return t;
+    } },
+  { k: 'clientiNuovi', lab: 'Clienti nuovi', t: 'int', serie: 'clientiNuovi', sub: sotto('nuovi abbonati nel periodo') },
+  { k: 'clientiPersi', lab: 'Clienti persi', t: 'int', inv: true, serie: 'clientiPersi', sub: sotto('abbonati che hanno disdetto nel periodo') }
+];
+var NOMI_MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+function disegnaS04() {
+  var p = per();
+  $('#t04').textContent = 'MRR = ricavo mensile ricorrente · numeri per piano';
+  riempiSchede('#k04', '04', K04);
+  var pm = p.ponteMrr;
+  $('#ponte').innerHTML = '<h3>Come si muove il MRR nel periodo</h3>' + (pm ?
+    '<div class="ponte"><div>MRR di inizio<b>' + num(pm.inizio) + '</b></div><div>clienti nuovi<b class="up">' + snum(pm.nuovi) + '</b></div><div>clienti persi<b class="down">' + num(-pm.persi) + '</b></div><div>MRR di fine<b>' + num(pm.fine) + '</b></div></div>' +
+    (pm.altro ? '<p class="muted" style="margin-top:8px">Altri movimenti (cambi di piano): ' + snum(pm.altro) + '</p>' : '') : '<p class="muted">n.d.</p>');
+  var pp = p.perPiano, righe = '';
+  if (pp) Object.keys(pp).forEach(function (k) {
+    var x = pp[k];
+    righe += '<tr><td>' + esc(x.nome) + '</td><td>' + num(x.clientiAttivi) + '</td><td>' + num(x.mrr) + '</td><td>' + num(x.clientiNuovi) + '</td><td>' + num(x.clientiPersi) + '</td><td>' + (x.churn == null ? 'n.d.' : num(x.churn * 100, 1) + '%') + '</td></tr>';
+  });
+  $('#piani').innerHTML = '<h3>Numeri per piano</h3><table class="t"><thead><tr><th>Piano</th><th>Clienti attivi</th><th>MRR</th><th>Clienti nuovi</th><th>Clienti persi</th><th>Churn</th></tr></thead><tbody>' + righe + '</tbody></table>';
+}
+var K05 = [
+  { k: 'cac12m', lab: 'CAC (12 mesi)', t: 'eur', inv: true, serie: 'cac12m', sub: sotto('solo pubblicità, diviso tutti i clienti nuovi (compreso il passaparola), ultimi 12 mesi'),
+    tip: sotto('È più basso dei singoli canali perché i clienti del passaparola non costano nulla e abbassano la media. Il personale commerciale non è compreso.') },
+  { k: 'rientroCac12m', lab: 'Rientro del CAC', t: 'mesi', inv: true, serie: 'rientroCac12m', sub: sotto('mesi di abbonamento per recuperare il CAC') },
+  { k: 'ltv', lab: 'LTV', t: 'eur', sub: sotto('ricavo atteso da un cliente in tutta la sua vita (fatturato, non margine), in euro') },
+  { k: 'ltvSuCac', lab: 'LTV / CAC', t: 'r1', sub: sotto('quante volte il cliente ripaga il costo per averlo'),
+    tip: sotto('L\'LTV è fatturato e non profitto: per questo la soglia sana è 3 e non 1, perché la differenza copre i costi per servire il cliente.') }
+];
+function disegnaS05() {
+  riempiSchede('#k05', '05', K05);
+  var pc = per().perCanale, righe = '';
+  if (pc) Object.keys(pc).forEach(function (k) {
+    var x = pc[k];
+    var ns = function (t) { return '<span class="muted" data-tip="' + esc(x.ns || x.nd || '') + '">' + t + '</span>'; };
+    righe += '<tr><td>' + esc(k) + '</td><td>' + num(x.spesa) + '</td><td>' + num(x.clientiNuovi) + '</td><td>' + (x.cac == null ? ns('n.s.') : num(x.cac)) + '</td><td>' + (x.peso == null ? 'n.d.' : num(x.peso * 100, 0) + '%') + '</td><td>' + (x.roas == null ? ns('n.s.') : num(x.roas, 1) + '×') + '</td></tr>';
+  });
+  $('#canali').innerHTML = '<h3>Numeri per canale <span class="muted" style="font-weight:400">· ROAS = ricavi portati diviso spesa in pubblicità · CAC = spesa in pubblicità del canale diviso i suoi clienti nuovi · peso = quota dei clienti nuovi</span></h3><table class="t"><thead><tr><th>Canale</th><th>Spesa in pubblicità</th><th>Clienti nuovi</th><th>CAC</th><th>Peso</th><th>ROAS</th></tr></thead><tbody>' + righe + '</tbody></table>';
+}
+RENDER.push(disegnaS04, disegnaS05);
+</script>
+<script>
+/* ===== 06 Conto economico, 07 Cassa e debiti, 08 Controlli ===== */
+var K06 = [
+  { k: 'ricavi', lab: 'Ricavi di competenza', t: 'eur', serie: 'ricavi', sub: sotto('ricavi del periodo, quota di competenza') },
+  { k: 'margineLordo', lab: 'Margine lordo', t: 'eur', sub: sotto('ricavi meno costo del servizio, in euro') },
+  { k: 'margineContribuzione', lab: 'Margine dopo la pubblicità', t: 'eur', sub: sotto('margine lordo meno pubblicità, in euro') },
+  { k: 'puntoPareggioClienti', lab: 'Punto di pareggio', t: 'int', inv: true, sub: sotto('clienti attivi che servono per coprire tutti i costi, pubblicità compresa'), tip: function (p) {
+      var s = p.kpi.puntoPareggioSenzaPubblicita, ca = p.kpi.clientiAttivi;
+      if (!s || s.valore == null || !ca || ca.valore == null) return '';
+      return 'Senza la pubblicità basterebbero ' + num(s.valore) + ' clienti: oggi sono ' + num(ca.valore) + '.' + (p.kpi.utileNetto && p.kpi.utileNetto.valore < 0 ? ' La perdita ' + (p.tipo === 'mese' ? 'del mese' : 'del periodo') + ' viene dalla spesa per trovare clienti nuovi.' : '');
+    } },
+  { k: 'ebitda', lab: 'EBITDA', t: 'eur', serie: 'ebitda', sub: sotto('risultato prima di interessi, imposte e ammortamenti') },
+  { k: 'margineEbitda', lab: 'Margine EBITDA', t: 'pct', serie: 'margineEbitda', sub: sotto('EBITDA diviso ricavi') },
+  { k: 'ebit', lab: 'EBIT', t: 'eur', sub: sotto('EBITDA meno ammortamenti') },
+  { k: 'utileNetto', lab: 'Utile netto', t: 'eur', serie: 'utileNetto', sub: sotto('dopo interessi e imposte') },
+  { k: 'ruleOf40', lab: 'Rule of 40', t: 'pt', sub: sotto('crescita dei ricavi sull\'anno prima più margine EBITDA, in punti: 40 o più è buono'), tip: function (p, kp) {
+      var rp = p.kpi.ruleOf40Pezzi, a = rp && rp.valore;
+      if (!a || kp.valore == null) return '';
+      var t = 'Crescita dei ricavi ' + snum(a.crescitaRicavi, 1) + '% più margine EBITDA ' + snum(a.margineEbitda, 1) + '% = ' + FMT.pt.f(kp.valore) + '.';
+      if (a.margineEbitda < 0 && kp.valore >= 40) t += ' Sopra 40 solo grazie alla crescita: l\'azienda perde ancora soldi.';
+      return t;
+    } },
+  { k: 'roi', lab: 'ROI', t: 'pct', sub: sotto('utile sul capitale investito') },
+  { k: 'roe', lab: 'ROE', t: 'pct', sub: sotto('utile sul patrimonio netto') }
+];
+var K07 = [
+  { k: 'cassaFine', lab: 'Cassa a fine periodo', t: 'eur', serie: 'cassaFine', sub: sotto('soldi in banca, in euro') },
+  { k: 'flussoCassa', lab: 'Flusso di cassa', t: 'eur', sub: sotto('quanto la cassa è salita (o scesa) nel periodo') },
+  { k: 'burnMedio12m', lab: 'Consumo medio (burn)', t: 'eur', inv: true, sub: sotto('cassa bruciata al mese, media degli ultimi 12 mesi') },
+  { k: 'runwayEbitda', lab: 'Runway sul conto economico', t: 'mesi', serie: 'runwayEbitda', sub: sotto('mesi di cassa al consumo medio dell\'EBITDA') },
+  { k: 'runwayCassa', lab: 'Runway sulla cassa', t: 'mesi', serie: 'runwayCassa', sub: sotto('mesi di cassa, rate del finanziamento comprese') },
+  { k: 'risconti', lab: 'Risconti passivi', t: 'eur', serie: 'risconti', sub: sotto('incassato per servizi ancora da fornire') },
+  { k: 'debitoFinanziamento', lab: 'Debito del finanziamento', t: 'eur', inv: true, sub: sotto('capitale ancora da restituire') },
+  { k: 'pfn', lab: 'PFN', t: 'eur', inv: true, sub: sotto('posizione finanziaria netta: debiti meno cassa (negativa = più cassa che debiti)') },
+  { k: 'pfnSuEbitda', lab: 'PFN / EBITDA', t: 'r1', inv: true, sub: sotto('anni di EBITDA per ripagare il debito netto') },
+  { k: 'currentRatio', lab: 'Current ratio', t: 'r2', sub: sotto('cassa diviso quanto va dato entro 12 mesi (rate del finanziamento e servizio già incassato)'),
+    tip: sotto('Non ci sono crediti verso clienti perché pagano in anticipo, quindi conta solo la cassa. I risconti sono servizio da dare ai clienti annuali, non soldi da restituire: per questo un valore vicino a 1 qui preoccupa meno che in un\'azienda normale.') },
+  { k: 'patrimonioNetto', lab: 'Patrimonio netto', t: 'eur', serie: 'patrimonioNetto', sub: sotto('capitale proprio dell\'azienda, in euro'), tip: function (p) {
+      var m = p.kpi.mesiPatrimonioNetto, l = p.kpi.perditaUltimoMese;
+      if (!m || m.valore == null || !l || l.valore == null) return '';
+      return 'Al ritmo della perdita ' + (p.tipo === 'mese' ? 'di questo mese' : 'dell\'ultimo mese') + ' (' + num(l.valore) + ') il patrimonio netto finisce in circa ' + num(m.valore) + ' mesi.';
+    } }
+];
+function disegnaGraficoCassa() {
+  var box = $('#gc'), S = D.serieMensile.cassaFine, mesi = D.meta.mesi, p = per();
+  if (!box.offsetWidth) return;
+  var W = box.clientWidth, H = Math.max(box.clientHeight, 140), L = 84, R = 30, T = 14, B = 28;
+  var vals = mesi.map(function (m) { return S[m]; }), mn = Math.min.apply(null, vals), mx = Math.max.apply(null, vals);
+  var lo = Math.floor(mn / 1e6) * 1e6, hi = Math.ceil(mx / 1e6) * 1e6;
+  var xs = function (i) { return L + i * (W - L - R) / (mesi.length - 1); }, ys = function (v) { return T + (hi - v) * (H - T - B) / (hi - lo); };
+  var out = '';
+  for (var g = lo; g <= hi + 1; g += 1000000) out += '<line x1="' + L + '" x2="' + (W - R) + '" y1="' + ys(g) + '" y2="' + ys(g) + '" stroke="#F3F4F6"/><text x="' + (L - 8) + '" y="' + (ys(g) + 4) + '" text-anchor="end" font-size="12" fill="#6B7280">' + num(g) + '</text>';
+  var ia = mesi.indexOf(p.mesi[0]), ib = mesi.indexOf(p.mesi[p.mesi.length - 1]);
+  out += '<rect x="' + (xs(ia) - 6) + '" y="' + T + '" width="' + (xs(ib) - xs(ia) + 12) + '" height="' + (H - T - B) + '" fill="#2563EB" opacity=".07" rx="4"/>';
+  var d = mesi.map(function (m, i) { return (i ? 'L' : 'M') + xs(i).toFixed(1) + ' ' + ys(S[m]).toFixed(1); }).join('');
+  out += '<path d="' + d + '" fill="none" stroke="#2563EB" stroke-width="2" stroke-linejoin="round"/>';
+  mesi.forEach(function (m, i) {
+    var a = m.split('-');
+    if (i % 2 === 0 || i === mesi.length - 1) out += '<text x="' + xs(i) + '" y="' + (H - 8) + '" text-anchor="middle" font-size="12" fill="#6B7280">' + NOMI_MESI[+a[1] - 1] + ' ' + a[0].slice(2) + '</text>';
+  });
+  var im = vals.indexOf(mn), am = mesi[im].split('-');
+  out += '<circle cx="' + xs(im) + '" cy="' + ys(mn) + '" r="5" fill="#DC2626" stroke="#fff" stroke-width="2"/><text x="' + (xs(im) - 10) + '" y="' + (ys(mn) + 16) + '" text-anchor="end" font-size="12" font-weight="600" fill="#B91C1C">punto più basso: ' + NOMI_MESI[+am[1] - 1] + ' ' + am[0] + ', ' + num(mn) + '</text>';
+  out += '<circle cx="' + xs(ib) + '" cy="' + ys(vals[ib]) + '" r="4.5" fill="#2563EB" stroke="#fff" stroke-width="2"/>';
+  box.innerHTML = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Cassa mese per mese">' + out + '</svg>';
+}
+function disegnaS06S07S08() {
+  riempiSchede('#k06', '06', K06);
+  riempiSchede('#k07', '07', K07);
+  disegnaGraficoCassa();
+  $('#k08').innerHTML = controlliHtml();
+}
+RENDER.push(disegnaS06S07S08);
+
+/* ===== Linguetta Tolleranze: tabella delle regole, campi modificabili, salvataggio nel browser ===== */
+function righeTolleranze() {
+  var viste = {}, righe = [];
+  [].concat(SEI, K04, K05, K06, K07).forEach(function (d) {
+    if (viste[d.k]) return;
+    var ha = !!SOGLIE[d.k] || Object.keys(D.periodi).some(function (id) { var x = D.periodi[id].kpi[d.k]; return x && x.budget != null; });
+    if (!ha) return;
+    viste[d.k] = 1; righe.push({ k: d.k, lab: SOGLIE[d.k] ? SOGLIE[d.k].lab : d.lab, inv: !!d.inv });
+  });
+  righe.sort(function (a, b) { return (SOGLIE[b.k] ? 1 : 0) - (SOGLIE[a.k] ? 1 : 0); });   // prima quelle con soglia e fonte (ordine stabile nel resto)
+  return righe;
+}
+function tolRosso(k) {
+  var s = SOGLIE[k], t = tolDi(k);
+  if (!s) return 'oltre ' + num(t.o, t.o % 1 ? 1 : 0) + '%';
+  return s.verso === 'basso' ? 'oltre ' + num(t.o, s.dec) + s.u : 'sotto ' + num(t.o, s.dec) + s.u;
+}
+function disegnaTolleranze() {
+  var righe = righeTolleranze(), meta = Math.ceil(righe.length / 2), html = '';
+  $('#tol-nota').innerHTML = 'Ogni scheda ha una striscia colorata sul bordo sinistro. <b>Verde</b>: tutto bene. <b>Arancione</b> (da monitorare): ci si sta avvicinando al limite. <b>Rosso</b>: limite superato. Per i primi cinque indicatori si confronta il valore con una soglia; per gli altri si guarda quanto il valore è peggiore del budget del periodo. Esempio: con il 5% di verde e il 10% di arancione, un MRR di 95.000 euro contro un budget di 100.000 è del 5% sotto: verde; a 92.000 è dell\'8% sotto: arancione; a 85.000 è del 15% sotto: rosso. Se un valore è meglio del budget, la scheda è sempre verde. Le schede senza soglia e senza budget restano senza colore. Per gli indicatori con una soglia, il verde si ferma il 20% prima della soglia, per avvisare prima di arrivarci: con il Rientro del CAC la soglia è 18 mesi, quindi verde fino a 14,4 (18 meno il 20%), arancione fino a 18, rosso oltre.';
+  function tab(lista) {
+    var h = '<table class="tt"><thead><tr><th>Indicatore</th><th>Regola</th><th>Meglio</th><th>Verde fino a</th><th>Arancione fino a</th><th>Rosso</th></tr></thead><tbody>';
+    lista.forEach(function (r) {
+      var s = SOGLIE[r.k], t = tolDi(r.k), alto = s ? s.verso === 'alto' : !r.inv;
+      var un = s ? esc(s.u.trim()) : '%';
+      var regola = s ? esc(s.regola) : 'scostamento sfavorevole dal budget del periodo; 5% e 10% sono valori di partenza, si cambiano qui';
+      var lim = s && s.verso === 'alto' ? ['da ', 'da '] : s ? ['fino a ', 'fino a '] : ['fino a ', 'fino a '];
+      h += '<tr data-k="' + r.k + '"><td class="n">' + esc(r.lab) + '</td><td>' + regola + '</td><td>' + (alto ? 'più alto' : 'più basso') + '</td>' +
+        '<td class="nw">' + lim[0] + '<input type="text" inputmode="decimal" data-c="g" value="' + String(t.g).replace('.', ',') + '" aria-label="Verde, ' + esc(r.lab) + '"> ' + un + '</td>' +
+        '<td class="nw">' + lim[1] + '<input type="text" inputmode="decimal" data-c="o" value="' + String(t.o).replace('.', ',') + '" aria-label="Arancione, ' + esc(r.lab) + '"> ' + un + '<span class="msg"></span></td>' +
+        '<td class="rs nw"><span class="sw" style="background:#DC2626"></span>' + esc(tolRosso(r.k)) + '</td></tr>';
+    });
+    return h + '</tbody></table>';
+  }
+  $('#tol-tabelle').innerHTML = '<div>' + tab(righe.slice(0, meta)) + '</div><div>' + tab(righe.slice(meta)) + '</div>';
+  Array.prototype.forEach.call(document.querySelectorAll('#tol-tabelle input'), function (inp) {
+    inp.addEventListener('change', function () { salvaTolleranza(inp); });
+  });
+  aggiornaStatoTol();
+}
+function aggiornaStatoTol() {
+  var n = Object.keys(TOLU).length;
+  $('#tol-stato').textContent = n ? n + ' indicatori con valori cambiati da te' : 'valori di partenza';
+}
+function salvaTolleranza(inp) {
+  var tr = inp.closest('tr'), k = tr.getAttribute('data-k'), s = SOGLIE[k], msg = tr.querySelector('.msg');
+  var ig = tr.querySelector('input[data-c="g"]'), io = tr.querySelector('input[data-c="o"]');
+  var g = Number(String(ig.value).replace(',', '.').trim()), o = Number(String(io.value).replace(',', '.').trim());
+  var errore = '';
+  if (ig.value.trim() === '' || io.value.trim() === '' || !isFinite(g) || !isFinite(o)) errore = 'Scrivi due numeri (per esempio 5 o 14,4).';
+  else if (!s && (g < 0 || o < 0)) errore = 'Gli scostamenti sono percentuali, zero o più.';
+  else if (!tolOrdineOk(s ? s.verso : 'basso', g, o)) errore = s && s.verso === 'alto' ? 'Il verde deve partire da un valore uguale o più alto dell\'arancione.' : 'Il verde deve arrivare a un valore uguale o più basso dell\'arancione.';
+  ig.classList.toggle('bad', !!errore); io.classList.toggle('bad', !!errore);
+  msg.textContent = errore;
+  if (errore) return;        // valore non valido: non si salva e le schede restano come prima
+  var base = s || BUDGET_BASE;
+  if (g === base.g && o === base.o) delete TOLU[k]; else TOLU[k] = { g: g, o: o };
+  tolScrivi();
+  tr.querySelector('.rs').innerHTML = '<span class="sw" style="background:#DC2626"></span>' + esc(tolRosso(k));
+  aggiornaStatoTol();
+  aggiorna();
+}
+$('#tol-reset').onclick = function () {
+  TOLU = {}; tolScrivi(); disegnaTolleranze(); aggiorna();
+};
+</script>
+<!--@@SCRIPTS-->
+<script>
+/* ===== Linguette (schede), barra fissa, ridisegno dei grafici ===== */
+var SCHEDE = [['panoramica', 'Panoramica'], ['abbonamenti', 'Abbonamenti e clienti'], ['acquisizione', 'Acquisizione'], ['conto-economico', 'Conto economico'], ['cassa', 'Cassa e debiti'], ['tolleranze', 'Tolleranze'], ['controlli', 'Controlli']];
+var SCHEDA = 'panoramica';
+function schedaDaHash() {
+  var h = (location.hash || '').replace('#', '');
+  return SCHEDE.some(function (s) { return s[0] === h; }) ? h : 'panoramica';
+}
+function creaLinguette() {
+  var t = $('#tabs'); t.innerHTML = '';
+  SCHEDE.forEach(function (s) {
+    var b = el('button', '', esc(s[1])); b.type = 'button'; b.setAttribute('role', 'tab'); b.dataset.scheda = s[0];
+    b.onclick = function () { if (location.hash === '#' + s[0]) apriScheda(s[0], false); else location.hash = '#' + s[0]; };
+    t.appendChild(b);
+  });
+}
+function misuraBarra() {
+  var b = $('#barra'), n = $('#banner-esito'), h = b.offsetHeight + (n.hidden ? 0 : n.offsetHeight + 8);
+  document.documentElement.style.setProperty('--sopra', h + 'px');
+}
+function ridisegnaGrafici() {
+  misuraBarra();
+  if (!D) return;
+  disegnaSankey(); disegnaCascata(); disegnaGraficoCassa();
+}
+function apriScheda(nome, primo) {
+  SCHEDA = nome;
+  Array.prototype.forEach.call(document.querySelectorAll('.pane'), function (p) { p.classList.toggle('on', p.dataset.scheda === nome); });
+  Array.prototype.forEach.call(document.querySelectorAll('#tabs button'), function (b) {
+    var on = b.dataset.scheda === nome; b.classList.toggle('on', on); b.setAttribute('aria-selected', String(on));
+  });
+  ridisegnaGrafici();
+  window.scrollTo(0, 0);
+}
+window.addEventListener('hashchange', function () { if (D) apriScheda(schedaDaHash(), false); });
+(function () {
+  var tm = null;
+  function pianifica() { clearTimeout(tm); tm = setTimeout(function () { if (D) ridisegnaGrafici(); }, 120); }
+  window.addEventListener('resize', function () { if (D) ridisegnaGrafici(); pianifica(); });
+  window.addEventListener('load', pianifica);
+  // il carattere si carica dopo il primo disegno e può cambiare l'altezza delle schede: i grafici seguono lo spazio che resta
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(pianifica);
+  if (window.ResizeObserver) {
+    var ro = new ResizeObserver(pianifica);
+    ['#sankey', '#cascata', '#gc'].forEach(function (s) { var n = document.querySelector(s); if (n) ro.observe(n); });
+  }
+})();
+</script>
+<script>
+/* ===== Avvio ===== */
+(function () {
+  try { history.scrollRestoration = 'manual'; } catch (e) {}
+  if (!D || !D.periodi || !D.meta || !D.controlli) {
+    var a = $('#avviso-dati');
+    a.hidden = false;
+    a.innerHTML = '<b>I numeri non ci sono.</b><br>Manca il file <code>dati-dashboard.js</code> accanto a questa pagina. Lancia prima <code>Aggiorna la dashboard.ps1</code>: scrive i numeri e li mette nella stessa cartella della pagina.';
+    return;
+  }
+  $('#app').hidden = false;
+  ST.id = elencoPeriodi('mese')[0];
+  disegnaIntestazione();
+  $('#pill-controlli').onclick = function () { location.hash = '#controlli'; };
+  creaLinguette();
+  disegnaTolleranze();
+  aggiorna();
+  apriScheda(schedaDaHash(), true);
+})();
+</script>
+</body>
+</html>
