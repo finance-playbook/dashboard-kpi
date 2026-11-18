@@ -989,6 +989,8 @@ window.addEventListener('hashchange', function () { if (D) apriScheda(schedaDaHa
   }
   $('#app').hidden = false;
   ST.id = elencoPeriodi('mese')[0];
+  // con ?mese=2026-10 nel link la pagina si apre su quel mese; senza, sull'ultimo
+  try { var qm = new URLSearchParams(location.search).get('mese'); if (qm && D.periodi['mese-' + qm]) ST.id = 'mese-' + qm; } catch (e) {}
   disegnaIntestazione();
   $('#pill-controlli').onclick = function () { location.hash = '#controlli'; };
   creaLinguette();
